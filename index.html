@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>VulnTrack SCA — Security Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0e14;          /* deep console black-blue */
+  --panel:#11161f;
+  --panel-2:#161d29;
+  --line:#1f2937;
+  --text:#dbe2ec;
+  --muted:#76808f;
+  --accent:#4cc2ff;      /* scanner cyan */
+  --critical:#ff4d5e;
+  --high:#ff9f43;
+  --medium:#ffd166;
+  --low:#3ddc97;
+  --radius:10px;
+  --nav-h:64px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--bg);color:var(--text);
+  -webkit-font-smoothing:antialiased;
+}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* ===== scan-line signature accent ===== */
+.scanline{
+  position:fixed;top:0;left:0;right:0;height:2px;z-index:200;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  background-size:200% 100%;
+  animation:scan 6s linear infinite;
+}
+@keyframes scan{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media (prefers-reduced-motion: reduce){
+  .scanline{animation:none}
+  *{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
+/* ===== Login ===== */
+#login-view{
+  min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:
+    radial-gradient(900px 500px at 70% -10%,rgba(76,194,255,.08),transparent),
+    var(--bg);
+}
+.login-card{
+  width:100%;max-width:380px;background:var(--panel);
+  border:1px solid var(--line);border-radius:14px;padding:36px 30px;
+  box-shadow:0 30px 60px rgba(0,0,0,.5);
+}
+.brand{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.brand-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);
+  box-shadow:0 0 12px var(--accent)}
+.brand h1{font-size:18px;font-weight:700;letter-spacing:.5px}
+.login-sub{font-size:12.5px;color:var(--muted);margin-bottom:26px}
+label{display:block;font-size:11px;font-weight:600;letter-spacing:.8px;
+  text-transform:uppercase;color:var(--muted);margin:14px 0 6px}
+input,select{
+  width:100%;padding:11px 13px;background:var(--bg);color:var(--text);
+  border:1px solid var(--line);border-radius:8px;font-size:14px;
+  font-family:inherit;transition:border-color .2s, box-shadow .2s;
+}
+input:focus,select:focus{outline:none;border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(76,194,255,.15)}
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  padding:11px 18px;border:none;border-radius:8px;font-size:13.5px;font-weight:600;
+  cursor:pointer;transition:transform .12s, box-shadow .2s, background .2s;
+  font-family:inherit;
+}
+.btn:active{transform:translateY(1px)}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn-primary{background:var(--accent);color:#04222f}
+.btn-primary:hover:not(:disabled){box-shadow:0 6px 18px rgba(76,194,255,.35)}
+.btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line)}
+.btn-ghost:hover{color:var(--text);border-color:var(--muted)}
+.btn-danger{background:transparent;color:var(--critical);border:1px solid rgba(255,77,94,.4)}
+.btn-danger:hover{background:rgba(255,77,94,.12)}
+.btn-block{width:100%;margin-top:22px}
+.login-error{display:none;margin-top:14px;padding:10px 12px;border-radius:8px;
+  background:rgba(255,77,94,.12);border:1px solid rgba(255,77,94,.35);
+  color:var(--critical);font-size:13px}
+
+/* ===== App shell ===== */
+#app-view{display:none;min-height:100dvh}
+.shell{display:flex;min-height:100dvh}
+.sidebar{
+  width:222px;flex-shrink:0;background:var(--panel);
+  border-right:1px solid var(--line);
+  display:flex;flex-direction:column;padding:22px 14px;
+  position:sticky;top:0;height:100dvh;
+}
+.sidebar .brand{padding:0 10px;margin-bottom:30px}
+.nav-item{
+  display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:8px;
+  color:var(--muted);font-size:13.5px;font-weight:500;cursor:pointer;
+  transition:background .15s,color .15s;margin-bottom:3px;user-select:none;
+  border:none;background:none;width:100%;text-align:left;font-family:inherit;
+}
+.nav-item:hover{color:var(--text);background:var(--panel-2)}
+.nav-item.active{color:var(--accent);background:rgba(76,194,255,.1)}
+.nav-item .nv-ic{width:18px;text-align:center;font-size:15px}
+.nav-badge{margin-left:auto;background:var(--critical);color:#fff;font-size:10px;
+  font-weight:700;border-radius:9px;padding:2px 7px;font-family:'JetBrains Mono',monospace}
+.sidebar-footer{margin-top:auto;padding:10px}
+.user-chip{font-size:12px;color:var(--muted);margin-bottom:10px}
+.user-chip b{color:var(--text)}
+
+.main{flex:1;min-width:0;padding:30px clamp(16px,4vw,42px) 100px}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;
+  gap:14px;flex-wrap:wrap;margin-bottom:26px}
+.page-title{font-size:clamp(20px,3vw,26px);font-weight:700;letter-spacing:-.3px}
+.page-sub{font-size:13px;color:var(--muted);margin-top:4px}
+
+/* view transitions */
+.view{display:none}
+.view.active{display:block;animation:viewIn .28s cubic-bezier(.2,.7,.3,1)}
+@keyframes viewIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ===== Cards / stats ===== */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+  gap:14px;margin-bottom:26px}
+.stat{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  padding:18px 18px 16px;position:relative;overflow:hidden;
+}
+.stat::after{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:var(--st,var(--accent))}
+.stat-num{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;
+  color:var(--st,var(--accent))}
+.stat-lbl{font-size:11px;font-weight:600;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--muted);margin-top:4px}
+
+/* severity heat strip — signature element */
+.heat-strip{display:flex;height:10px;border-radius:6px;overflow:hidden;
+  border:1px solid var(--line);margin:6px 0 26px;background:var(--panel)}
+.heat-seg{transition:width .6s cubic-bezier(.2,.7,.3,1)}
+.heat-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);
+  margin:-16px 0 26px}
+.heat-legend span{display:flex;align-items:center;gap:6px}
+.heat-legend i{width:9px;height:9px;border-radius:2px;display:inline-block}
+
+/* ===== Panels & tables ===== */
+.panel{background:var(--panel);border:1px solid var(--line);
+  border-radius:var(--radius);margin-bottom:22px;overflow:hidden}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:15px 18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.panel-title{font-size:13px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;
+  color:var(--muted)}
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:560px}
+th{font-size:10.5px;font-weight:600;letter-spacing:.9px;text-transform:uppercase;
+  color:var(--muted);text-align:left;padding:11px 16px;border-bottom:1px solid var(--line);
+  background:var(--panel-2);white-space:nowrap}
+td{padding:13px 16px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .12s;cursor:default}
+tbody tr.clickable{cursor:pointer}
+tbody tr.clickable:hover{background:var(--panel-2)}
+.cell-strong{font-weight:600}
+.cell-dim{color:var(--muted);font-size:12.5px}
+
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10.5px;
+  font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  font-family:'JetBrains Mono',monospace}
+.sev-critical{background:rgba(255,77,94,.15);color:var(--critical)}
+.sev-high{background:rgba(255,159,67,.15);color:var(--high)}
+.sev-medium{background:rgba(255,209,102,.14);color:var(--medium)}
+.sev-low{background:rgba(61,220,151,.14);color:var(--low)}
+.sev-unassigned{background:rgba(118,128,143,.16);color:var(--muted)}
+.t-info{background:rgba(76,194,255,.13);color:var(--accent)}
+.t-warning{background:rgba(255,159,67,.15);color:var(--high)}
+.t-error{background:rgba(255,77,94,.15);color:var(--critical)}
+.st-open{color:var(--high)} .st-fixed{color:var(--low)} .st-ignored{color:var(--muted)}
+
+/* forms inline */
+.form-row{display:flex;gap:10px;flex-wrap:wrap;padding:16px 18px}
+.form-row input,.form-row select{flex:1;min-width:140px;width:auto}
+.inline-actions{display:flex;gap:8px;flex-wrap:wrap}
+.icon-btn{background:none;border:none;cursor:pointer;font-size:15px;padding:6px;
+  border-radius:6px;color:var(--muted);transition:color .15s,background .15s;font-family:inherit}
+.icon-btn:hover{color:var(--text);background:var(--panel-2)}
+.icon-btn.danger:hover{color:var(--critical);background:rgba(255,77,94,.1)}
+
+/* skeleton loading */
+.skeleton{height:14px;border-radius:6px;background:linear-gradient(90deg,
+  var(--panel-2) 25%, #1c2533 50%, var(--panel-2) 75%);
+  background-size:200% 100%;animation:shimmer 1.4s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.skeleton-row td{padding:15px 16px}
+
+/* empty state */
+.empty{padding:44px 20px;text-align:center;color:var(--muted);font-size:13.5px}
+.empty .e-ic{font-size:26px;display:block;margin-bottom:10px;opacity:.7}
+
+/* toast */
+#toast-zone{position:fixed;bottom:calc(var(--nav-h) + 14px);right:16px;left:16px;
+  display:flex;flex-direction:column;gap:8px;align-items:flex-end;z-index:300;
+  pointer-events:none}
+.toast{pointer-events:auto;max-width:420px;background:var(--panel-2);
+  border:1px solid var(--line);border-left:3px solid var(--accent);
+  border-radius:8px;padding:12px 16px;font-size:13px;
+  box-shadow:0 10px 30px rgba(0,0,0,.45);animation:toastIn .25s ease}
+.toast.err{border-left-color:var(--critical)}
+.toast.ok{border-left-color:var(--low)}
+@keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* back link */
+.back-link{display:inline-flex;align-items:center;gap:7px;color:var(--muted);
+  font-size:13px;cursor:pointer;border:none;background:none;font-family:inherit;
+  margin-bottom:14px;padding:4px 0}
+.back-link:hover{color:var(--accent)}
+
+/* mobile bottom nav */
+.bottom-nav{display:none}
+@media (max-width:840px){
+  .sidebar{display:none}
+  .main{padding:22px 16px calc(var(--nav-h) + 30px)}
+  .bottom-nav{
+    display:flex;position:fixed;bottom:0;left:0;right:0;height:var(--nav-h);
+    background:rgba(17,22,31,.92);backdrop-filter:blur(12px);
+    border-top:1px solid var(--line);z-index:150;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .bn-item{flex:1;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:3px;color:var(--muted);font-size:10px;font-weight:600;
+    border:none;background:none;cursor:pointer;font-family:inherit;position:relative}
+  .bn-item .bn-ic{font-size:18px}
+  .bn-item.active{color:var(--accent)}
+  .bn-dot{position:absolute;top:9px;right:calc(50% - 16px);width:7px;height:7px;
+    border-radius:50%;background:var(--critical)}
+  table{min-width:520px}
+}
+</style>
+</head>
+<body>
+<div class="scanline"></div>
+
+<!-- ================= LOGIN ================= -->
+<div id="login-view">
+  <div class="login-card">
+    <div class="brand"><span class="brand-dot"></span><h1>VULNTRACK <span style="color:var(--accent)">SCA</span></h1></div>
+    <p class="login-sub mono">// restricted security console — authorized access only</p>
+    <label for="li-user">Username</label>
+    <input id="li-user" autocomplete="username" placeholder="admin">
+    <label for="li-pass">Password</label>
+    <input id="li-pass" type="password" autocomplete="current-password" placeholder="••••••••••">
+    <button class="btn btn-primary btn-block" id="li-btn" onclick="doLogin()">Sign in</button>
+    <div class="login-error" id="li-err"></div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="app-view">
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><span class="brand-dot"></span><h1 style="font-size:15px">VULNTRACK <span style="color:var(--accent)">SCA</span></h1></div>
+    <button class="nav-item active" data-nav="dashboard" onclick="go('dashboard')"><span class="nv-ic">▣</span> Dashboard</button>
+    <button class="nav-item" data-nav="projects" onclick="go('projects')"><span class="nv-ic">⛁</span> Projects</button>
+    <button class="nav-item" data-nav="notifications" onclick="go('notifications')"><span class="nv-ic">◉</span> Notifications <span class="nav-badge" id="side-badge" style="display:none">0</span></button>
+    <button class="nav-item" data-nav="policies" onclick="go('policies')"><span class="nv-ic">⛨</span> Policies</button>
+    <div class="sidebar-footer">
+      <div class="user-chip">Signed in as <b id="who">—</b></div>
+      <button class="btn btn-ghost" style="width:100%" onclick="logout()">Sign out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ===== DASHBOARD ===== -->
+    <section class="view active" id="view-dashboard">
+      <div class="page-head">
+        <div><div class="page-title">Security Dashboard</div>
+        <div class="page-sub mono" id="dash-stamp">// loading…</div></div>
+        <button class="btn btn-ghost" onclick="loadDashboard()">↻ Refresh</button>
+      </div>
+      <div class="stats-grid" id="stats-grid">
+        <div class="stat"><div class="skeleton" style="width:50px;height:26px"></div><div class="stat-lbl">Projects</div></div>
+        <div class="stat"><div class="skeleton" style="width:50px;height:26px"></div><div class="stat-lbl">Dependencies</div></div>
+        <div class="stat"><div class="skeleton" style="width:50px;height:26px"></div><div class="stat-lbl">Total CVEs</div></div>
+        <div class="stat"><div class="skeleton" style="width:50px;height:26px"></div><div class="stat-lbl">High / Critical</div></div>
+      </div>
+      <div class="heat-strip" id="heat-strip"></div>
+      <div class="heat-legend">
+        <span><i style="background:var(--critical)"></i>Critical</span>
+        <span><i style="background:var(--high)"></i>High</span>
+        <span><i style="background:var(--medium)"></i>Medium</span>
+        <span><i style="background:var(--low)"></i>Low</span>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Top vulnerabilities</span></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>CVE</th><th>Component</th><th>CVSS</th><th>Severity</th><th>Status</th></tr></thead>
+          <tbody id="dash-cves"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- ===== PROJECTS ===== -->
+    <section class="view" id="view-projects">
+      <div class="page-head">
+        <div><div class="page-title">Projects</div>
+        <div class="page-sub">Track components and exposure per project</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">New project</span></div>
+        <div class="form-row">
+          <input id="np-name" placeholder="Project name" maxlength="120">
+          <input id="np-ver" placeholder="Version (1.0.0)" maxlength="40" style="max-width:150px">
+          <button class="btn btn-primary" id="np-btn" onclick="createProject()">＋ Create</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">All projects</span>
+          <span class="cell-dim mono" id="proj-count"></span></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Name</th><th>Version</th><th>Deps</th><th>CVEs</th><th>Created</th><th></th></tr></thead>
+          <tbody id="proj-rows"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- ===== PROJECT DETAIL ===== -->
+    <section class="view" id="view-project-detail">
+      <button class="back-link" onclick="go('projects')">← Back to projects</button>
+      <div class="page-head">
+        <div><div class="page-title" id="pd-title">Project</div>
+        <div class="page-sub mono" id="pd-sub"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Add dependency</span></div>
+        <div class="form-row">
+          <input id="nd-name" placeholder="Library name (e.g. lodash)">
+          <input id="nd-ver" placeholder="Version" style="max-width:140px">
+          <button class="btn btn-primary" onclick="addDependency()">＋ Add</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Dependencies</span></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Library</th><th>Version</th><th>CVEs</th><th></th></tr></thead>
+          <tbody id="pd-deps"></tbody>
+        </table></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Vulnerabilities</span></div>
+        <div class="table-wrap"><table>
+          <thead><tr><th>CVE</th><th>Component</th><th>CVSS</th><th>Severity</th><th>Status</th><th></th></tr></thead>
+          <tbody id="pd-cves"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- ===== NOTIFICATIONS ===== -->
+    <section class="view" id="view-notifications">
+      <div class="page-head">
+        <div><div class="page-title">Notifications</div>
+        <div class="page-sub">System events and security alerts</div></div>
+      </div>
+      <div class="panel">
+        <div class="table-wrap"><table>
+          <thead><tr><th>Message</th><th>Type</th><th>Status</th><th>Time</th><th></th></tr></thead>
+          <tbody id="notif-rows"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <!-- ===== POLICIES ===== -->
+    <section class="view" id="view-policies">
+      <div class="page-head">
+        <div><div class="page-title">Security Policies</div>
+        <div class="page-sub">Enforcement rules applied to scans</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">New policy</span></div>
+        <div class="form-row">
+          <input id="pol-name" placeholder="Policy name">
+          <select id="pol-thresh" style="max-width:170px">
+            <option>Low</option><option>Medium</option>
+            <option selected>High</option><option>Critical</option>
+          </select>
+          <select id="pol-auto" style="max-width:190px">
+            <option value="false">Manual remediation</option>
+            <option value="true">Auto remediation</option>
+          </select>
+          <button class="btn btn-primary" onclick="createPolicy()">＋ Create</button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="table-wrap"><table>
+          <thead><tr><th>Policy</th><th>Threshold</th><th>Remediation</th><th>State</th><th></th></tr></thead>
+          <tbody id="pol-rows"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- mobile nav -->
+<nav class="bottom-nav">
+  <button class="bn-item active" data-nav="dashboard" onclick="go('dashboard')"><span class="bn-ic">▣</span>Dash</button>
+  <button class="bn-item" data-nav="projects" onclick="go('projects')"><span class="bn-ic">⛁</span>Projects</button>
+  <button class="bn-item" data-nav="notifications" onclick="go('notifications')"><span class="bn-ic">◉</span>Alerts<span class="bn-dot" id="bn-dot" style="display:none"></span></button>
+  <button class="bn-item" data-nav="policies" onclick="go('policies')"><span class="bn-ic">⛨</span>Policies</button>
+</nav>
+</div>
+
+<div id="toast-zone"></div>
+
+<script>
+/* ============================================================
+   VulnTrack SCA — Static Edition (GitHub Pages)
+   Data lives in YOUR browser only (localStorage). No server.
+   The PIN gate is a privacy screen, not real security.
+   ============================================================ */
+
+/* ================= Local data store ================= */
+const DB_KEY = 'vt_db_v1';
+
+function loadDB(){
+  try{ const raw = localStorage.getItem(DB_KEY);
+    if (raw) return JSON.parse(raw); }catch(e){}
+  return null;
+}
+function saveDB(db){ localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+
+function freshDB(){
+  return {
+    seq: 100,
+    projects: [
+      {id:1,name:'React Frontend',version:'18.2.0',description:'Customer-facing web application',created_at:new Date().toISOString()},
+      {id:2,name:'Node.js API Server',version:'20.0.0',description:'Internal REST API services',created_at:new Date().toISOString()},
+      {id:3,name:'Python Data Pipeline',version:'1.4.0',description:'ETL and analytics workloads',created_at:new Date().toISOString()},
+    ],
+    dependencies: [
+      {id:1,project_id:1,name:'axios',version:'1.4.0'},
+      {id:2,project_id:1,name:'react-router',version:'6.8.0'},
+      {id:3,project_id:2,name:'express',version:'4.18.2'},
+      {id:4,project_id:2,name:'mongoose',version:'7.0.0'},
+      {id:5,project_id:3,name:'flask',version:'2.3.0'},
+      {id:6,project_id:3,name:'sqlalchemy',version:'2.0.0'},
+    ],
+    cves: [
+      {id:1,dependency_id:1,cve_id:'CVE-2023-45857',cvss_score:6.5,severity:'Medium',description:'axios SSRF via absolute URLs',status:'Open'},
+      {id:2,dependency_id:3,cve_id:'CVE-2024-29041',cvss_score:6.1,severity:'Medium',description:'express open redirect',status:'Open'},
+      {id:3,dependency_id:4,cve_id:'CVE-2023-3696',cvss_score:9.8,severity:'Critical',description:'mongoose prototype pollution',status:'Open'},
+      {id:4,dependency_id:5,cve_id:'CVE-2023-30861',cvss_score:7.5,severity:'High',description:'flask cookie disclosure',status:'Open'},
+    ],
+    notifications: [
+      {id:1,message:'System initialized — data is stored in this browser only',notification_type:'Info',is_read:0,created_at:new Date().toISOString()},
+      {id:2,message:'Critical CVE-2023-3696 detected in mongoose',notification_type:'Error',is_read:0,created_at:new Date().toISOString()},
+    ],
+    policies: [
+      {id:1,name:'Block Critical in Production',severity_threshold:'Critical',auto_remediation:1,is_active:1,created_at:new Date().toISOString()},
+      {id:2,name:'Weekly High Severity Review',severity_threshold:'High',auto_remediation:0,is_active:1,created_at:new Date().toISOString()},
+    ],
+  };
+}
+
+let DB = loadDB();
+if (!DB){ DB = freshDB(); saveDB(DB); }
+const nextId = () => (++DB.seq);
+const nowISO = () => new Date().toISOString();
+function notify(message, type){ DB.notifications.unshift({id:nextId(),message,notification_type:type,is_read:0,created_at:nowISO()}); }
+
+/* ================= "API" over localStorage =================
+   Same routes & response shapes the UI already expects. */
+async function api(path, method='GET', body=null){
+  await new Promise(r=>setTimeout(r, 120)); // small UX delay so skeletons render
+  const fail = (msg)=>{ throw new Error(msg); };
+
+  // ---- auth ----
+  if (path==='/auth/me') return {username: localStorage.getItem('vt_user')||'owner'};
+
+  // ---- stats ----
+  if (path==='/stats'){
+    const sb={}; DB.cves.forEach(c=>sb[c.severity]=(sb[c.severity]||0)+1);
+    const st={}; DB.cves.forEach(c=>st[c.status]=(st[c.status]||0)+1);
+    return {
+      total_projects: DB.projects.length,
+      total_dependencies: DB.dependencies.length,
+      total_cves: DB.cves.length,
+      high_critical_cves: (sb.High||0)+(sb.Critical||0),
+      severity_breakdown: sb, status_breakdown: st,
+      unread_notifications: DB.notifications.filter(n=>!n.is_read).length,
+    };
+  }
+
+  // ---- projects ----
+  if (path==='/projects' && method==='GET'){
+    return { total: DB.projects.length, projects: DB.projects.map(p=>({
+      ...p,
+      dependencies_count: DB.dependencies.filter(d=>d.project_id===p.id).length,
+      cves_count: DB.cves.filter(c=>{
+        const dep=DB.dependencies.find(d=>d.id===c.dependency_id);
+        return dep && dep.project_id===p.id; }).length,
+    })).sort((a,b)=>b.created_at.localeCompare(a.created_at)) };
+  }
+  if (path==='/projects' && method==='POST'){
+    const name=(body.name||'').trim();
+    if (!name) fail('Project name cannot be blank');
+    if (DB.projects.some(p=>p.name===name)) fail('Project name already exists');
+    const p={id:nextId(),name,version:body.version||'1.0.0',description:body.description||'',created_at:nowISO()};
+    DB.projects.push(p); notify(`Project '${name}' created`,'Info'); saveDB(DB);
+    return {id:p.id,name:p.name,message:'Project created'};
+  }
+  let m;
+  if ((m=path.match(/^\/projects\/(\d+)$/))){
+    const id=+m[1]; const p=DB.projects.find(x=>x.id===id);
+    if (!p) fail('Project not found');
+    if (method==='GET'){
+      const deps=DB.dependencies.filter(d=>d.project_id===id);
+      const cves=[];
+      deps.forEach(dep=>DB.cves.filter(c=>c.dependency_id===dep.id)
+        .forEach(c=>cves.push({...c,dependency:dep.name})));
+      cves.sort((a,b)=>b.cvss_score-a.cvss_score);
+      return { project:{...p},
+        dependencies: deps.map(d=>({...d,cves_count:DB.cves.filter(c=>c.dependency_id===d.id).length})),
+        cves, total_cves:cves.length };
+    }
+    if (method==='PATCH'){
+      if (body.name!==undefined){
+        if (DB.projects.some(x=>x.name===body.name && x.id!==id)) fail('Project name already exists');
+        p.name=body.name.trim(); }
+      if (body.version!==undefined) p.version=body.version;
+      if (body.description!==undefined) p.description=body.description;
+      saveDB(DB); return {message:'Project updated',id};
+    }
+    if (method==='DELETE'){
+      const depIds=DB.dependencies.filter(d=>d.project_id===id).map(d=>d.id);
+      DB.cves=DB.cves.filter(c=>!depIds.includes(c.dependency_id));
+      DB.dependencies=DB.dependencies.filter(d=>d.project_id!==id);
+      DB.projects=DB.projects.filter(x=>x.id!==id);
+      notify(`Project '${p.name}' deleted`,'Warning'); saveDB(DB);
+      return {message:'Project deleted'};
+    }
+  }
+
+  // ---- dependencies ----
+  if ((m=path.match(/^\/projects\/(\d+)\/dependencies$/)) && method==='POST'){
+    const pid=+m[1];
+    if (!DB.projects.find(p=>p.id===pid)) fail('Project not found');
+    const name=(body.name||'').trim(); if(!name) fail('Library name required');
+    const d={id:nextId(),project_id:pid,name,version:body.version||''};
+    DB.dependencies.push(d); saveDB(DB);
+    return {id:d.id,message:'Dependency added'};
+  }
+  if ((m=path.match(/^\/dependencies\/(\d+)$/)) && method==='DELETE'){
+    const id=+m[1];
+    if (!DB.dependencies.find(d=>d.id===id)) fail('Dependency not found');
+    DB.cves=DB.cves.filter(c=>c.dependency_id!==id);
+    DB.dependencies=DB.dependencies.filter(d=>d.id!==id);
+    saveDB(DB); return {message:'Dependency removed'};
+  }
+
+  // ---- cves ----
+  if ((m=path.match(/^\/dependencies\/(\d+)\/cves$/)) && method==='POST'){
+    const did=+m[1];
+    if (!DB.dependencies.find(d=>d.id===did)) fail('Dependency not found');
+    if (body.cvss_score<0||body.cvss_score>10) fail('CVSS must be 0-10');
+    const c={id:nextId(),dependency_id:did,cve_id:body.cve_id,
+      cvss_score:body.cvss_score||0,severity:body.severity||'UNASSIGNED',
+      description:body.description||'',status:'Open'};
+    DB.cves.push(c);
+    notify(`New CVE ${c.cve_id} recorded (${c.severity})`,
+      ['High','Critical'].includes(c.severity)?'Warning':'Info');
+    saveDB(DB); return {id:c.id,message:'CVE recorded'};
+  }
+  if ((m=path.match(/^\/cves\/(\d+)\/status$/)) && method==='PATCH'){
+    const c=DB.cves.find(x=>x.id===+m[1]); if(!c) fail('CVE not found');
+    if (!['Open','Fixed','Ignored'].includes(body.status)) fail('Invalid status');
+    c.status=body.status; saveDB(DB);
+    return {message:'CVE status set to '+body.status};
+  }
+
+  // ---- notifications ----
+  if (path==='/notifications' && method==='GET'){
+    return {total:DB.notifications.length, notifications:DB.notifications.map(n=>({
+      id:n.id,message:n.message,type:n.notification_type,
+      is_read:!!n.is_read,created_at:n.created_at}))};
+  }
+  if ((m=path.match(/^\/notifications\/(\d+)\/read$/)) && method==='PATCH'){
+    const n=DB.notifications.find(x=>x.id===+m[1]); if(!n) fail('Notification not found');
+    n.is_read=1; saveDB(DB); return {message:'Marked as read'};
+  }
+  if ((m=path.match(/^\/notifications\/(\d+)$/)) && method==='DELETE'){
+    DB.notifications=DB.notifications.filter(x=>x.id!==+m[1]);
+    saveDB(DB); return {message:'Notification deleted'};
+  }
+
+  // ---- policies ----
+  if (path==='/policies' && method==='GET'){
+    return {total:DB.policies.length, policies:DB.policies.map(p=>({
+      ...p, auto_remediation:!!p.auto_remediation, is_active:!!p.is_active}))};
+  }
+  if (path==='/policies' && method==='POST'){
+    const name=(body.name||'').trim(); if(!name) fail('Policy name required');
+    if (!['Low','Medium','High','Critical'].includes(body.severity_threshold)) fail('Invalid threshold');
+    const p={id:nextId(),name,severity_threshold:body.severity_threshold,
+      auto_remediation:body.auto_remediation?1:0,is_active:1,created_at:nowISO()};
+    DB.policies.push(p); saveDB(DB); return {id:p.id,message:'Policy created'};
+  }
+  if ((m=path.match(/^\/policies\/(\d+)$/))){
+    const p=DB.policies.find(x=>x.id===+m[1]); 
+    if (method==='PATCH'){ if(!p) fail('Policy not found');
+      if (body.name!==undefined) p.name=body.name;
+      if (body.severity_threshold!==undefined) p.severity_threshold=body.severity_threshold;
+      if (body.auto_remediation!==undefined) p.auto_remediation=body.auto_remediation?1:0;
+      if (body.is_active!==undefined) p.is_active=body.is_active?1:0;
+      saveDB(DB); return {message:'Policy updated'}; }
+    if (method==='DELETE'){ if(!p) fail('Policy not found');
+      DB.policies=DB.policies.filter(x=>x.id!==+m[1]);
+      saveDB(DB); return {message:'Policy deleted'}; }
+  }
+
+  fail('Unknown route: '+method+' '+path);
+}
+
+/* ================= Toasts ================= */
+function toast(msg, kind=''){
+  const z = document.getElementById('toast-zone');
+  const t = document.createElement('div');
+  t.className = 'toast '+kind; t.textContent = msg;
+  z.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s';
+    setTimeout(()=>t.remove(), 320); }, 3200);
+}
+
+/* ================= PIN gate (privacy screen, client-side only) ================= */
+async function sha256(s){
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function doLogin(){
+  const btn = document.getElementById('li-btn');
+  const err = document.getElementById('li-err');
+  err.style.display='none';
+  const user = document.getElementById('li-user').value.trim() || 'owner';
+  const pass = document.getElementById('li-pass').value;
+  if (!pass){ err.textContent='Enter a PIN / password.'; err.style.display='block'; return; }
+  btn.disabled = true; btn.textContent = 'Checking…';
+  try{
+    const stored = localStorage.getItem('vt_pin');
+    const h = await sha256(pass);
+    if (!stored){
+      // first run — set the PIN
+      localStorage.setItem('vt_pin', h);
+      localStorage.setItem('vt_user', user);
+      toast('PIN set for this device. Remember it!','ok');
+      sessionStorage.setItem('vt_open','1');
+      enterApp();
+    } else if (stored === h){
+      localStorage.setItem('vt_user', user);
+      sessionStorage.setItem('vt_open','1');
+      enterApp();
+    } else {
+      err.textContent = 'Wrong PIN for this device.';
+      err.style.display='block';
+    }
+  } finally { btn.disabled=false; btn.textContent='Sign in'; }
+}
+document.getElementById('li-pass').addEventListener('keydown', e=>{ if(e.key==='Enter') doLogin(); });
+
+function logout(){
+  sessionStorage.removeItem('vt_open');
+  document.getElementById('app-view').style.display='none';
+  document.getElementById('login-view').style.display='flex';
+}
+
+async function enterApp(){
+  document.getElementById('login-view').style.display='none';
+  document.getElementById('app-view').style.display='block';
+  document.getElementById('who').textContent = localStorage.getItem('vt_user')||'owner';
+  go('dashboard');
+}
+
+/* ================= Router ================= */
+let currentProjectId = null;
+function go(view){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+view).classList.add('active');
+  document.querySelectorAll('[data-nav]').forEach(b=>
+    b.classList.toggle('active', b.dataset.nav===view));
+  if (view==='dashboard') loadDashboard();
+  if (view==='projects') loadProjects();
+  if (view==='notifications') loadNotifications();
+  if (view==='policies') loadPolicies();
+  window.scrollTo({top:0});
+}
+
+/* ================= Helpers ================= */
+const esc = s => String(s ?? '').replace(/[&<>"']/g,
+  c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sevBadge = s => `<span class="badge sev-${esc((s||'unassigned').toLowerCase())}">${esc(s)}</span>`;
+const typeBadge = t => `<span class="badge t-${esc((t||'info').toLowerCase())}">${esc(t)}</span>`;
+const fmtDate = iso => new Date(iso).toLocaleString(undefined,
+  {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+function skeletonRows(tbody, cols, n=3){
+  tbody.innerHTML = Array(n).fill(0).map(()=>
+    `<tr class="skeleton-row">${Array(cols).fill('<td><div class="skeleton"></div></td>').join('')}</tr>`).join('');
+}
+function emptyRow(tbody, cols, icon, text){
+  tbody.innerHTML = `<tr><td colspan="${cols}"><div class="empty"><span class="e-ic">${icon}</span>${esc(text)}</div></td></tr>`;
+}
+
+/* ================= Dashboard ================= */
+async function loadDashboard(){
+  const grid = document.getElementById('stats-grid');
+  const cvesBody = document.getElementById('dash-cves');
+  skeletonRows(cvesBody, 5);
+  try{
+    const s = await api('/stats');
+    document.getElementById('dash-stamp').textContent =
+      '// local data — last sync ' + new Date().toLocaleTimeString();
+    grid.innerHTML = `
+      <div class="stat" style="--st:var(--accent)"><div class="stat-num">${s.total_projects}</div><div class="stat-lbl">Projects</div></div>
+      <div class="stat" style="--st:#9aa7ff"><div class="stat-num">${s.total_dependencies}</div><div class="stat-lbl">Dependencies</div></div>
+      <div class="stat" style="--st:var(--medium)"><div class="stat-num">${s.total_cves}</div><div class="stat-lbl">Total CVEs</div></div>
+      <div class="stat" style="--st:var(--critical)"><div class="stat-num">${s.high_critical_cves}</div><div class="stat-lbl">High / Critical</div></div>`;
+    const sb = s.severity_breakdown || {};
+    const total = Math.max(1, (sb.Critical||0)+(sb.High||0)+(sb.Medium||0)+(sb.Low||0));
+    const seg = (n,c)=>`<div class="heat-seg" style="width:${(n/total*100)}%;background:${c}" title="${n}"></div>`;
+    document.getElementById('heat-strip').innerHTML =
+      seg(sb.Critical||0,'var(--critical)')+seg(sb.High||0,'var(--high)')+
+      seg(sb.Medium||0,'var(--medium)')+seg(sb.Low||0,'var(--low)');
+    updateBadges(s.unread_notifications||0);
+    // top CVEs across projects
+    const pl = await api('/projects');
+    let cves = [];
+    for (const p of pl.projects){
+      const d = await api('/projects/'+p.id);
+      cves.push(...d.cves);
+    }
+    cves.sort((a,b)=>b.cvss_score-a.cvss_score);
+    cves = cves.slice(0,6);
+    if (!cves.length) return emptyRow(cvesBody,5,'✓','No vulnerabilities recorded — clean slate.');
+    cvesBody.innerHTML = cves.map(c=>`
+      <tr><td class="cell-strong mono">${esc(c.cve_id)}</td>
+      <td class="cell-dim">${esc(c.dependency)}</td>
+      <td class="mono">${c.cvss_score.toFixed(1)}</td>
+      <td>${sevBadge(c.severity)}</td>
+      <td class="st-${esc(c.status.toLowerCase())}">${esc(c.status)}</td></tr>`).join('');
+  }catch(e){ toast(e.message,'err'); }
+}
+
+function updateBadges(n){
+  const side = document.getElementById('side-badge');
+  const dot = document.getElementById('bn-dot');
+  side.style.display = n>0 ? 'inline-block':'none';
+  side.textContent = n;
+  dot.style.display = n>0 ? 'block':'none';
+}
+
+/* ================= Projects ================= */
+async function loadProjects(){
+  const body = document.getElementById('proj-rows');
+  skeletonRows(body, 6);
+  try{
+    const data = await api('/projects');
+    document.getElementById('proj-count').textContent = data.total+' total';
+    if (!data.projects.length)
+      return emptyRow(body,6,'⛁','No projects yet — create your first one above.');
+    body.innerHTML = data.projects.map(p=>`
+      <tr class="clickable" onclick="openProject(${p.id})">
+        <td class="cell-strong">${esc(p.name)}</td>
+        <td class="mono cell-dim">${esc(p.version)}</td>
+        <td class="mono">${p.dependencies_count}</td>
+        <td class="mono" style="color:${p.cves_count>0?'var(--high)':'var(--low)'}">${p.cves_count}</td>
+        <td class="cell-dim">${fmtDate(p.created_at)}</td>
+        <td onclick="event.stopPropagation()">
+          <button class="icon-btn danger" title="Delete project"
+            onclick="deleteProject(${p.id},'${esc(p.name)}')">✕</button></td>
+      </tr>`).join('');
+  }catch(e){ toast(e.message,'err'); emptyRow(body,6,'⚠','Failed to load projects.'); }
+}
+
+async function createProject(){
+  const name = document.getElementById('np-name').value.trim();
+  const ver = document.getElementById('np-ver').value.trim() || '1.0.0';
+  if (!name) return toast('Enter a project name first.','err');
+  const btn = document.getElementById('np-btn');
+  btn.disabled = true;
+  try{
+    await api('/projects','POST',{name, version:ver});
+    document.getElementById('np-name').value='';
+    document.getElementById('np-ver').value='';
+    toast(`Project "${name}" created.`,'ok');
+    loadProjects();
+  }catch(e){ toast(e.message,'err'); }
+  finally{ btn.disabled=false; }
+}
+
+async function deleteProject(id, name){
+  if (!confirm(`Delete project "${name}"?\nAll its dependencies and CVEs will be removed.`)) return;
+  try{
+    await api('/projects/'+id,'DELETE');
+    toast(`Project "${name}" deleted.`,'ok');
+    loadProjects();
+  }catch(e){ toast(e.message,'err'); }
+}
+
+/* ================= Project detail ================= */
+async function openProject(id){
+  currentProjectId = id;
+  go('project-detail');
+  const depsBody = document.getElementById('pd-deps');
+  const cvesBody = document.getElementById('pd-cves');
+  skeletonRows(depsBody,4); skeletonRows(cvesBody,6);
+  try{
+    const d = await api('/projects/'+id);
+    document.getElementById('pd-title').textContent = d.project.name;
+    document.getElementById('pd-sub').textContent =
+      `// v${d.project.version} — ${d.dependencies.length} dependencies, ${d.total_cves} CVEs`;
+    if (!d.dependencies.length)
+      emptyRow(depsBody,4,'⛁','No dependencies — add the first one above.');
+    else depsBody.innerHTML = d.dependencies.map(dep=>`
+      <tr><td class="cell-strong">${esc(dep.name)}</td>
+      <td class="mono cell-dim">${esc(dep.version)}</td>
+      <td class="mono" style="color:${dep.cves_count>0?'var(--high)':'var(--low)'}">${dep.cves_count}</td>
+      <td><button class="icon-btn danger" title="Remove dependency"
+        onclick="removeDependency(${dep.id})">✕</button></td></tr>`).join('');
+    if (!d.cves.length)
+      emptyRow(cvesBody,6,'✓','No vulnerabilities for this project.');
+    else cvesBody.innerHTML = d.cves.map(c=>`
+      <tr><td class="cell-strong mono">${esc(c.cve_id)}</td>
+      <td class="cell-dim">${esc(c.dependency)}</td>
+      <td class="mono">${c.cvss_score.toFixed(1)}</td>
+      <td>${sevBadge(c.severity)}</td>
+      <td class="st-${esc(c.status.toLowerCase())}">${esc(c.status)}</td>
+      <td>${c.status!=='Fixed' ? `<button class="icon-btn" title="Mark fixed"
+        onclick="setCveStatus(${c.id},'Fixed')">✓</button>`:''}</td></tr>`).join('');
+  }catch(e){ toast(e.message,'err'); }
+}
+
+async function addDependency(){
+  const name = document.getElementById('nd-name').value.trim();
+  const ver = document.getElementById('nd-ver').value.trim();
+  if (!name) return toast('Enter a library name.','err');
+  try{
+    await api(`/projects/${currentProjectId}/dependencies`,'POST',{name,version:ver});
+    document.getElementById('nd-name').value='';
+    document.getElementById('nd-ver').value='';
+    toast(`Dependency "${name}" added.`,'ok');
+    openProject(currentProjectId);
+  }catch(e){ toast(e.message,'err'); }
+}
+
+async function removeDependency(id){
+  if (!confirm('Remove this dependency and its CVEs?')) return;
+  try{
+    await api('/dependencies/'+id,'DELETE');
+    toast('Dependency removed.','ok');
+    openProject(currentProjectId);
+  }catch(e){ toast(e.message,'err'); }
+}
+
+async function setCveStatus(id, status){
+  try{
+    await api(`/cves/${id}/status`,'PATCH',{status});
+    toast('CVE marked as '+status+'.','ok');
+    openProject(currentProjectId);
+  }catch(e){ toast(e.message,'err'); }
+}
+
+/* ================= Notifications ================= */
+async function loadNotifications(){
+  const body = document.getElementById('notif-rows');
+  skeletonRows(body,5);
+  try{
+    const data = await api('/notifications');
+    updateBadges(data.notifications.filter(n=>!n.is_read).length);
+    if (!data.notifications.length)
+      return emptyRow(body,5,'◉','No notifications — all quiet.');
+    body.innerHTML = data.notifications.map(n=>`
+      <tr style="${n.is_read?'opacity:.55':''}">
+        <td>${esc(n.message)}</td>
+        <td>${typeBadge(n.type)}</td>
+        <td class="cell-dim">${n.is_read?'Read':'<b style="color:var(--accent)">Unread</b>'}</td>
+        <td class="cell-dim">${fmtDate(n.created_at)}</td>
+        <td><div class="inline-actions">
+          ${!n.is_read?`<button class="icon-btn" title="Mark read" onclick="markRead(${n.id})">✓</button>`:''}
+          <button class="icon-btn danger" title="Delete" onclick="deleteNotif(${n.id})">✕</button>
+        </div></td></tr>`).join('');
+  }catch(e){ toast(e.message,'err'); emptyRow(body,5,'⚠','Failed to load notifications.'); }
+}
+async function markRead(id){
+  try{ await api(`/notifications/${id}/read`,'PATCH'); loadNotifications(); }
+  catch(e){ toast(e.message,'err'); }
+}
+async function deleteNotif(id){
+  try{ await api('/notifications/'+id,'DELETE'); toast('Notification deleted.','ok');
+    loadNotifications(); }catch(e){ toast(e.message,'err'); }
+}
+
+/* ================= Policies ================= */
+async function loadPolicies(){
+  const body = document.getElementById('pol-rows');
+  skeletonRows(body,5);
+  try{
+    const data = await api('/policies');
+    if (!data.policies.length)
+      return emptyRow(body,5,'⛨','No policies defined — create one above.');
+    body.innerHTML = data.policies.map(p=>`
+      <tr><td class="cell-strong">${esc(p.name)}</td>
+      <td>${sevBadge(p.severity_threshold)}</td>
+      <td class="cell-dim">${p.auto_remediation?'Auto':'Manual'}</td>
+      <td>${p.is_active?'<b style="color:var(--low)">Active</b>':'<span class="cell-dim">Disabled</span>'}</td>
+      <td><div class="inline-actions">
+        <button class="icon-btn" title="${p.is_active?'Disable':'Enable'}"
+          onclick="togglePolicy(${p.id},${p.is_active?'false':'true'})">${p.is_active?'⏸':'▶'}</button>
+        <button class="icon-btn danger" title="Delete" onclick="deletePolicy(${p.id})">✕</button>
+      </div></td></tr>`).join('');
+  }catch(e){ toast(e.message,'err'); emptyRow(body,5,'⚠','Failed to load policies.'); }
+}
+async function createPolicy(){
+  const name = document.getElementById('pol-name').value.trim();
+  if (!name) return toast('Enter a policy name.','err');
+  try{
+    await api('/policies','POST',{
+      name,
+      severity_threshold: document.getElementById('pol-thresh').value,
+      auto_remediation: document.getElementById('pol-auto').value==='true',
+    });
+    document.getElementById('pol-name').value='';
+    toast(`Policy "${name}" created.`,'ok');
+    loadPolicies();
+  }catch(e){ toast(e.message,'err'); }
+}
+async function togglePolicy(id, active){
+  try{ await api('/policies/'+id,'PATCH',{is_active: active==='true'||active===true});
+    loadPolicies(); }catch(e){ toast(e.message,'err'); }
+}
+async function deletePolicy(id){
+  if (!confirm('Delete this policy?')) return;
+  try{ await api('/policies/'+id,'DELETE'); toast('Policy deleted.','ok');
+    loadPolicies(); }catch(e){ toast(e.message,'err'); }
+}
+
+/* ================= Boot ================= */
+(function(){
+  // adjust login copy for static edition
+  const sub = document.querySelector('.login-sub');
+  if (sub) sub.textContent = '// private console — first sign-in sets your device PIN';
+  if (sessionStorage.getItem('vt_open')==='1') enterApp();
+})();
+</script>
+</body>
+</html>
