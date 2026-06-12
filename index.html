@@ -196,6 +196,44 @@ input:focus,select:focus{outline:none;border-color:var(--accent);
 
 /* mobile topbar (hidden on desktop) */
 .mobile-topbar{display:none}
+
+/* ===== mobile side drawer ===== */
+.drawer-backdrop{position:fixed;inset:0;background:rgba(3,6,12,.6);
+  backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .25s;z-index:190}
+.drawer-backdrop.show{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;bottom:0;left:0;width:min(78vw,300px);z-index:200;
+  background:linear-gradient(180deg,var(--panel),var(--bg-2));
+  border-right:1px solid var(--line);padding:22px 16px;
+  padding-top:calc(22px + env(safe-area-inset-top));
+  transform:translateX(-102%);transition:transform .3s cubic-bezier(.2,.8,.2,1);
+  display:flex;flex-direction:column;box-shadow:var(--sh-2)}
+.drawer.open{transform:none}
+.drawer .brand{margin-bottom:28px;padding:0 8px}
+.drawer .nav-item{font-size:15px;padding:13px 12px}
+.drawer-footer{margin-top:auto}
+
+/* ===== exposure-by-project bars ===== */
+.pb-row{display:flex;align-items:center;gap:14px;padding:9px 0}
+.pb-name{flex:0 0 32%;min-width:0;font-size:13px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.pb-name:hover{color:var(--accent)}
+.pb-track{flex:1;height:9px;border-radius:6px;background:var(--bg-2);
+  border:1px solid var(--line);overflow:hidden}
+.pb-track i{display:block;height:100%;border-radius:6px;
+  transition:width .8s cubic-bezier(.2,.8,.2,1)}
+.pb-val{flex:0 0 34px;text-align:right;font-family:'JetBrains Mono';
+  font-size:12.5px;font-weight:700}
+
+/* ===== engagement coverage bar ===== */
+.eng-wrap{padding:0 20px 16px}
+.eng-bar{display:flex;height:10px;border-radius:6px;overflow:hidden;
+  background:var(--bg-2);border:1px solid var(--line)}
+.eng-bar i{transition:width .7s cubic-bezier(.2,.8,.2,1)}
+.eng-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;
+  font-size:12px;color:var(--text-2)}
+.eng-legend span{display:flex;align-items:center;gap:7px}
+.eng-legend b{font-family:'JetBrains Mono';color:var(--text)}
+.eng-legend i{width:9px;height:9px;border-radius:3px}
 </style>
 </head>
 <body>
@@ -412,7 +450,11 @@ tbody tr.clickable:hover{background:var(--panel-2)}
   .cardify .empty{padding:38px 16px}
   .cardify .empty::before{content:none}
   .stats-grid{grid-template-columns:1fr 1fr;gap:11px}
+  .stat{text-align:center;padding:16px 12px}
+  .stat-top{justify-content:center;margin-bottom:11px}
+  .stat::before{left:0;right:0;bottom:auto;width:auto;height:3px}
   .stat-num{font-size:28px}
+  .pb-name{flex-basis:38%}
   .gauge{width:150px;height:150px}
 }
 </style>
@@ -441,6 +483,9 @@ tbody tr.clickable:hover{background:var(--panel-2)}
 <!-- ===================== APP ===================== -->
 <div id="app-view">
 <header class="mobile-topbar">
+  <button class="icon-btn" aria-label="Open menu" onclick="toggleDrawer(true)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16" stroke-linecap="round"/></svg>
+  </button>
   <div class="brand">
     <svg class="brand-mark" style="width:26px;height:26px" viewBox="0 0 100 100" fill="none">
       <path d="M50 8 L86 22 V50 C86 72 70 88 50 94 C30 88 14 72 14 50 V22 Z" stroke="#38e8ff" stroke-width="5" stroke-linejoin="round"/>
@@ -535,6 +580,11 @@ tbody tr.clickable:hover{background:var(--panel-2)}
           <div class="dist-bar" id="dist-bar"></div>
           <div class="dist-legend" id="dist-legend"></div>
         </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title"><span class="pt-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="4" height="10" rx="1"/><rect x="10" y="4" width="4" height="16" rx="1"/><rect x="17" y="13" width="4" height="7" rx="1"/></svg></span>Exposure by project</span></div>
+        <div style="padding:14px 20px" id="proj-bars"></div>
       </div>
 
       <div class="panel">
@@ -636,6 +686,10 @@ tbody tr.clickable:hover{background:var(--panel-2)}
       <div class="panel">
         <div class="panel-head"><span class="panel-title">Suppliers</span>
           <span class="panel-meta" id="sup-count"></span></div>
+        <div class="eng-wrap" id="eng-wrap" style="display:none">
+          <div class="eng-bar" id="eng-bar"></div>
+          <div class="eng-legend" id="eng-legend"></div>
+        </div>
         <div class="table-wrap cardify"><table>
           <thead><tr><th>Company</th><th>Domain</th><th>Engagement</th><th>Breach status</th><th>Checked</th><th></th></tr></thead>
           <tbody id="sup-rows"></tbody>
@@ -707,6 +761,24 @@ tbody tr.clickable:hover{background:var(--panel-2)}
   </main>
 </div>
 
+<div class="drawer-backdrop" id="drawer-backdrop" onclick="toggleDrawer(false)"></div>
+<aside class="drawer" id="drawer" aria-label="Menu">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 100 100" fill="none">
+      <path d="M50 8 L86 22 V50 C86 72 70 88 50 94 C30 88 14 72 14 50 V22 Z" stroke="#38e8ff" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M34 50 l11 11 l22 -24" stroke="#38e8ff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span class="brand-name">Vuln<b>Track</b></span>
+  </div>
+  <button class="nav-item" data-nav="dashboard" onclick="go('dashboard')">▣&nbsp; Dashboard</button>
+  <button class="nav-item" data-nav="projects" onclick="go('projects')">⛁&nbsp; Projects</button>
+  <button class="nav-item" data-nav="supply" onclick="go('supply')">⛓&nbsp; Supply Chain</button>
+  <button class="nav-item" data-nav="notifications" onclick="go('notifications')">◉&nbsp; Alerts</button>
+  <button class="nav-item" data-nav="policies" onclick="go('policies')">⛨&nbsp; Policies</button>
+  <div class="drawer-footer">
+    <button class="btn btn-ghost" style="width:100%" onclick="logout()">Sign out</button>
+  </div>
+</aside>
 <nav class="bottom-nav" aria-label="Main navigation">
   <button class="bn-item active" data-nav="dashboard" onclick="go('dashboard')" aria-label="Dashboard">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dash</button>
@@ -903,7 +975,12 @@ async function enterApp(){
    Router
    ============================================================ */
 let currentProjectId=null;
+function toggleDrawer(open){
+  document.getElementById('drawer').classList.toggle('open',open);
+  document.getElementById('drawer-backdrop').classList.toggle('show',open);
+}
 function go(view){
+  toggleDrawer(false);
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+view).classList.add('active');
   document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===view));
@@ -993,6 +1070,29 @@ async function loadDashboard(){
     const leg=(l,n,c)=>`<span><i style="background:${c}"></i>${l} <b>${n||0}</b></span>`;
     document.getElementById('dist-legend').innerHTML=
       leg('Critical',sb.Critical,'var(--critical)')+leg('High',sb.High,'var(--high)')+leg('Medium',sb.Medium,'var(--medium)')+leg('Low',sb.Low,'var(--low)');
+    // ---- exposure by project ----
+    const W={Critical:10,High:6,Medium:3,Low:1,UNASSIGNED:1};
+    const pbHost=document.getElementById('proj-bars');
+    if(!pl.projects.length){pbHost.innerHTML='<div class="empty" style="padding:24px">No projects yet.</div>';}
+    else{
+      const rows=[];
+      for(const p of pl.projects){
+        const d=await api('/projects/'+p.id);
+        const open=d.cves.filter(c=>c.status==='Open');
+        const raw=open.reduce((t,c)=>t+(W[c.severity]||1),0);
+        const score=Math.min(100,raw*4);
+        rows.push({id:p.id,name:p.name,score,open:open.length});
+      }
+      rows.sort((a,b)=>b.score-a.score);
+      pbHost.innerHTML=rows.map(r=>{
+        const col=r.score>=60?'var(--critical)':r.score>=30?'var(--high)':r.score>0?'var(--medium)':'var(--low)';
+        return `<div class="pb-row">
+          <div class="pb-name" onclick="openProject(${r.id})" title="${esc(r.name)}">${esc(r.name)}</div>
+          <div class="pb-track"><i style="width:${r.score}%;background:${col}"></i></div>
+          <span class="pb-val" style="color:${col}">${r.score}</span></div>`;
+      }).join('');
+    }
+
     // ---- top cves ----
     cves.sort((a,b)=>b.cvss_score-a.cvss_score);cves=cves.slice(0,6);
     if(!cves.length)return emptyRow(cvesBody,5,'All clear','No vulnerabilities recorded yet.');
@@ -1129,6 +1229,22 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function loadSupply(){
   const sb=document.getElementById('sup-rows'),cb=document.getElementById('comp-rows');
   document.getElementById('sup-count').textContent=DB.suppliers.length+' suppliers';
+  // engagement coverage bar
+  const wrap=document.getElementById('eng-wrap');
+  if(DB.suppliers.length){
+    wrap.style.display='block';
+    const n=DB.suppliers.length;
+    const e=DB.suppliers.filter(s=>s.type==='Escrow').length;
+    const ne=DB.suppliers.filter(s=>s.type==='No escrow').length;
+    const u=n-e-ne;
+    const seg=(v,c)=>v?`<i style="width:${v/n*100}%;background:${c}"></i>`:'';
+    document.getElementById('eng-bar').innerHTML=
+      seg(e,'var(--low)')+seg(ne,'var(--high)')+seg(u,'var(--muted)');
+    document.getElementById('eng-legend').innerHTML=
+      `<span><i style="background:var(--low)"></i>Escrow <b>${e}</b></span>
+       <span><i style="background:var(--high)"></i>No escrow <b>${ne}</b></span>
+       <span><i style="background:var(--muted)"></i>Unknown <b>${u}</b></span>`;
+  }else wrap.style.display='none';
   if(!DB.suppliers.length)emptyRow(sb,6,'No suppliers yet','Add manually or import a file (name, engagement, domain).');
   else sb.innerHTML=DB.suppliers.map(s=>`<tr>
     <td data-l="Company" class="cell-strong">${esc(s.name)}</td>
