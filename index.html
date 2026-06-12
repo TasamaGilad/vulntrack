@@ -722,9 +722,20 @@ tbody tr.clickable:hover{background:var(--panel-2)}
         <div class="page-sub">System events and security notifications.</div></div>
       </div>
       <div class="panel">
+        <div class="panel-head"><span class="panel-title">Active alerts</span>
+          <span class="panel-meta" id="notif-count"></span></div>
         <div class="table-wrap cardify"><table>
           <thead><tr><th>Message</th><th>Type</th><th>Status</th><th>Time</th><th></th></tr></thead>
           <tbody id="notif-rows"></tbody>
+        </table></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title"><span class="pt-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Approved archive</span>
+          <span class="panel-meta">audit trail — append-only</span></div>
+        <div class="table-wrap cardify"><table>
+          <thead><tr><th>Original alert</th><th>Approved by</th><th>Justification</th><th>Approved at</th><th>State</th><th></th></tr></thead>
+          <tbody id="arch-rows"></tbody>
         </table></div>
       </div>
     </section>
@@ -844,7 +855,7 @@ async function api(path,method='GET',body=null){
       total_cves:DB.cves.length,high_critical_cves:(sb.High||0)+(sb.Critical||0),
       open_cves:DB.cves.filter(c=>c.status==='Open').length,
       severity_breakdown:sb,status_breakdown:st,
-      unread_notifications:DB.notifications.filter(n=>!n.is_read).length};
+      unread_notifications:DB.notifications.filter(n=>!n.is_read&&!n.archived).length};
   }
   if(path==='/projects'&&method==='GET'){
     return{total:DB.projects.length,projects:DB.projects.map(p=>({...p,
@@ -893,7 +904,7 @@ async function api(path,method='GET',body=null){
     c.status=body.status;saveDB(DB);return{message:'CVE status set to '+body.status};
   }
   if(path==='/notifications'&&method==='GET')
-    return{total:DB.notifications.length,notifications:DB.notifications.map(n=>({id:n.id,message:n.message,type:n.notification_type,is_read:!!n.is_read,created_at:n.created_at}))};
+    return{total:DB.notifications.length,notifications:DB.notifications.map(n=>({id:n.id,message:n.message,type:n.notification_type,is_read:!!n.is_read,created_at:n.created_at,archived:!!n.archived,ack_by:n.ack_by||'',ack_note:n.ack_note||'',ack_at:n.ack_at||null,reopened_at:n.reopened_at||null}))};
   if((m=path.match(/^\/notifications\/(\d+)\/read$/))&&method==='PATCH'){
     const n=DB.notifications.find(x=>x.id===+m[1]);if(!n)fail('Not found');n.is_read=1;saveDB(DB);return{message:'ok'};}
   if((m=path.match(/^\/notifications\/(\d+)$/))&&method==='DELETE'){
@@ -1179,18 +1190,51 @@ async function setCveStatus(id,status){try{await api(`/cves/${id}/status`,'PATCH
    Notifications
    ============================================================ */
 async function loadNotifications(){
-  const body=document.getElementById('notif-rows');skeletonRows(body,5);
+  const body=document.getElementById('notif-rows'),arch=document.getElementById('arch-rows');
+  skeletonRows(body,5);skeletonRows(arch,6);
   try{
     const data=await api('/notifications');
-    updateBadges(data.notifications.filter(n=>!n.is_read).length);
-    if(!data.notifications.length)return emptyRow(body,5,'All quiet','No notifications right now.');
-    body.innerHTML=data.notifications.map(n=>`<tr style="${n.is_read?'opacity:.5':''}">
+    const active=data.notifications.filter(n=>!n.archived);
+    const archived=data.notifications.filter(n=>n.archived);
+    document.getElementById('notif-count').textContent=active.length+' active';
+    updateBadges(active.filter(n=>!n.is_read).length);
+    if(!active.length)emptyRow(body,5,'All quiet','No active alerts right now.');
+    else body.innerHTML=active.map(n=>`<tr style="${n.is_read?'opacity:.55':''}">
       <td data-l="Message">${esc(n.message)}</td>
       <td data-l="Type">${typeBadge(n.type)}</td>
       <td data-l="Status" class="cell-dim">${n.is_read?'Read':'<b style="color:var(--accent)">Unread</b>'}</td>
       <td data-l="Time" class="cell-dim">${fmtDate(n.created_at)}</td>
-      <td><div class="inline-actions">${!n.is_read?`<button class="icon-btn" aria-label="Mark read" onclick="markRead(${n.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`:''}<button class="icon-btn danger" aria-label="Delete" onclick="deleteNotif(${n.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg></button></div></td></tr>`).join('');
+      <td><div class="inline-actions">
+        <button class="icon-btn" title="Approve as accepted risk" aria-label="Approve" onclick="approveAlert(${n.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        ${!n.is_read?`<button class="icon-btn" aria-label="Mark read" onclick="markRead(${n.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`:''}
+        <button class="icon-btn danger" aria-label="Delete" onclick="deleteNotif(${n.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg></button>
+      </div></td></tr>`).join('');
+    if(!archived.length)emptyRow(arch,6,'Archive is empty','Approved alerts will appear here with full audit details.');
+    else arch.innerHTML=archived.map(n=>`<tr>
+      <td data-l="Alert">${esc(n.message)}</td>
+      <td data-l="Approved by" class="cell-strong">${esc(n.ack_by)}</td>
+      <td data-l="Justification" class="cell-dim">${esc(n.ack_note)}</td>
+      <td data-l="Approved at" class="cell-dim">${n.ack_at?fmtDate(n.ack_at):'—'}</td>
+      <td data-l="State">${n.reopened_at?`<span class="badge sev-high">REOPENED ${fmtDate(n.reopened_at)}</span>`:'<span class="badge sev-low">ACCEPTED</span>'}</td>
+      <td>${!n.reopened_at?`<button class="icon-btn" title="Reopen alert" aria-label="Reopen" onclick="reopenAlert(${n.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 1 3 6.7L3 16M3 21v-5h5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`:''}</td></tr>`).join('');
   }catch(e){toast(e.message,'err');emptyRow(body,5,'Could not load','Something went wrong.');}
+}
+function approveAlert(id){
+  const n=DB.notifications.find(x=>x.id===id);if(!n)return;
+  const note=prompt('Justification for approving this alert as accepted risk:\n(required — recorded in the audit archive)');
+  if(note===null)return;
+  if(!note.trim())return toast('Justification is required for the audit trail.','err');
+  n.archived=1;n.is_read=1;
+  n.ack_by=localStorage.getItem('vt_user')||'owner';
+  n.ack_note=note.trim();n.ack_at=nowISO();
+  saveDB(DB);toast('Alert approved and archived with justification.','ok');loadNotifications();
+}
+function reopenAlert(id){
+  const n=DB.notifications.find(x=>x.id===id);if(!n)return;
+  if(!confirm('Reopen this alert?\nThe archive record stays (audit trail); a new active alert is created.'))return;
+  n.reopened_at=nowISO();
+  notify(`REOPENED: ${n.message} — previously approved by ${n.ack_by} ("${n.ack_note}")`,'Warning');
+  saveDB(DB);toast('Alert reopened — archive record preserved.','ok');loadNotifications();
 }
 async function markRead(id){try{await api(`/notifications/${id}/read`,'PATCH');loadNotifications();}catch(e){toast(e.message,'err');}}
 async function deleteNotif(id){try{await api('/notifications/'+id,'DELETE');toast('Deleted.','ok');loadNotifications();}catch(e){toast(e.message,'err');}}
