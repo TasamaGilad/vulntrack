@@ -469,6 +469,9 @@ tbody tr.clickable:hover{background:var(--panel-2)}
     <button class="nav-item" data-nav="projects" onclick="go('projects')">
       <svg class="nv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke-linejoin="round"/></svg>
       Projects</button>
+    <button class="nav-item" data-nav="supply" onclick="go('supply')">
+      <svg class="nv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Supply Chain</button>
     <div class="nav-section">Respond</div>
     <button class="nav-item" data-nav="notifications" onclick="go('notifications')">
       <svg class="nv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -605,6 +608,58 @@ tbody tr.clickable:hover{background:var(--panel-2)}
       </div>
     </section>
 
+    <!-- ===== SUPPLY CHAIN ===== -->
+    <section class="view" id="view-supply">
+      <div class="page-head">
+        <div><div class="eyebrow">Third parties</div>
+        <h1 class="page-title">Supply Chain</h1>
+        <div class="page-sub">Suppliers you work with, matched against the official HIBP breach catalog. Email alerts run on the backend deployment.</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Add supplier</span>
+          <div class="inline-actions">
+            <input type="file" id="sup-file" accept=".csv,.txt,.cab" style="display:none" onchange="importSuppliers(this.files[0])">
+            <button class="btn btn-ghost" onclick="document.getElementById('sup-file').click()">⇪ Import file</button>
+            <button class="btn btn-primary" id="breach-btn" onclick="checkBreaches()">⛨ Check breaches</button>
+          </div></div>
+        <div class="form-row">
+          <input id="sup-name" placeholder="Company name (required)" maxlength="120">
+          <input id="sup-domain" placeholder="Domain (e.g. acme.com)" maxlength="120">
+          <select id="sup-type" style="max-width:190px" aria-label="Engagement type">
+            <option>Unknown</option><option>Escrow</option><option>No escrow</option>
+          </select>
+          <button class="btn btn-primary" onclick="addSupplier()">＋ Add</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Suppliers</span>
+          <span class="panel-meta" id="sup-count"></span></div>
+        <div class="table-wrap cardify"><table>
+          <thead><tr><th>Company</th><th>Domain</th><th>Engagement</th><th>Breach status</th><th>Checked</th><th></th></tr></thead>
+          <tbody id="sup-rows"></tbody>
+        </table></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Security components</span>
+          <button class="btn btn-ghost" id="nvd-btn" onclick="scanComponents()">⌕ Scan CVEs (NVD)</button></div>
+        <div class="form-row">
+          <input id="comp-name" placeholder="Component (e.g. pfSense, Squid proxy)" maxlength="120">
+          <input id="comp-ver" placeholder="Version (empty = unknown)" maxlength="40" style="max-width:200px">
+          <select id="comp-status" style="max-width:160px" aria-label="In use?">
+            <option>In use</option><option>Not in use</option>
+          </select>
+          <button class="btn btn-primary" onclick="addComponent()">＋ Add</button>
+        </div>
+        <div class="table-wrap cardify"><table>
+          <thead><tr><th>Component</th><th>Status</th><th>Version</th><th>CVE matches</th><th>Scanned</th><th></th></tr></thead>
+          <tbody id="comp-rows"></tbody>
+        </table></div>
+      </div>
+    </section>
+
     <!-- ===== NOTIFICATIONS ===== -->
     <section class="view" id="view-notifications">
       <div class="page-head">
@@ -657,6 +712,8 @@ tbody tr.clickable:hover{background:var(--panel-2)}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dash</button>
   <button class="bn-item" data-nav="projects" onclick="go('projects')" aria-label="Projects">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke-linejoin="round"/></svg>Projects</button>
+  <button class="bn-item" data-nav="supply" onclick="go('supply')" aria-label="Supply chain">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Supply</button>
   <button class="bn-item" data-nav="notifications" onclick="go('notifications')" aria-label="Alerts">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" stroke-linecap="round" stroke-linejoin="round"/></svg>Alerts<span class="bn-dot" id="bn-dot" style="display:none"></span></button>
   <button class="bn-item" data-nav="policies" onclick="go('policies')" aria-label="Policies">
@@ -695,6 +752,8 @@ function freshDB(){const t=new Date().toISOString();return{
     {id:2,name:'Weekly High Severity Review',severity_threshold:'High',auto_remediation:0,is_active:1,created_at:t}],
 };}
 let DB=loadDB(); if(!DB){DB=freshDB();saveDB(DB);}
+if(!DB.suppliers){DB.suppliers=[];saveDB(DB);}
+if(!DB.components){DB.components=[];saveDB(DB);}
 const nextId=()=>(++DB.seq);
 const nowISO=()=>new Date().toISOString();
 function notify(message,type){DB.notifications.unshift({id:nextId(),message,notification_type:type,is_read:0,created_at:nowISO()});}
@@ -852,6 +911,7 @@ function go(view){
   if(view==='projects')loadProjects();
   if(view==='notifications')loadNotifications();
   if(view==='policies')loadPolicies();
+  if(view==='supply')loadSupply();
   window.scrollTo({top:0,behavior:reduceMotion()?'auto':'smooth'});
 }
 function updateBadges(n){
@@ -913,7 +973,9 @@ async function loadDashboard(){
     document.getElementById('hero-chips').innerHTML=
       `<span class="chip"><span class="dot" style="background:var(--critical)"></span>Critical <b>${sb.Critical||0}</b></span>
        <span class="chip"><span class="dot" style="background:var(--high)"></span>High <b>${sb.High||0}</b></span>
-       <span class="chip"><span class="dot" style="background:var(--low)"></span>Resolved <b>${s.status_breakdown?.Fixed||0}</b></span>`;
+       <span class="chip"><span class="dot" style="background:var(--low)"></span>Resolved <b>${s.status_breakdown?.Fixed||0}</b></span>
+       <span class="chip" style="cursor:pointer" onclick="go('supply')"><span class="dot" style="background:${DB.suppliers.some(x=>x.breached)?'var(--critical)':'var(--info)'}"></span>Suppliers breached <b>${DB.suppliers.filter(x=>x.breached).length}/${DB.suppliers.length}</b></span>
+       <span class="chip" style="cursor:pointer" onclick="go('supply')"><span class="dot" style="background:${DB.components.some(x=>x.vulns>0)?'var(--critical)':'var(--info)'}"></span>Components at risk <b>${DB.components.filter(x=>x.vulns>0).length}/${DB.components.length}</b></span>`;
     // ---- stat cards ----
     const card=(ic,st,num,lbl)=>`<div class="stat" style="--st:${st}"><div class="stat-top"><div class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ic}</svg></div></div><div class="stat-num" data-n="${num}">0</div><div class="stat-lbl">${lbl}</div></div>`;
     grid.innerHTML=
@@ -1057,6 +1119,124 @@ async function createPolicy(){
 }
 async function togglePolicy(id,active){try{await api('/policies/'+id,'PATCH',{is_active:active==='true'||active===true});loadPolicies();}catch(e){toast(e.message,'err');}}
 async function deletePolicy(id){if(!confirm('Delete this policy?'))return;try{await api('/policies/'+id,'DELETE');toast('Deleted.','ok');loadPolicies();}catch(e){toast(e.message,'err');}}
+
+/* ============================================================
+   Supply chain + components
+   ============================================================ */
+const normDomain=d=>String(d||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+function loadSupply(){
+  const sb=document.getElementById('sup-rows'),cb=document.getElementById('comp-rows');
+  document.getElementById('sup-count').textContent=DB.suppliers.length+' suppliers';
+  if(!DB.suppliers.length)emptyRow(sb,6,'No suppliers yet','Add manually or import a file (name, engagement, domain).');
+  else sb.innerHTML=DB.suppliers.map(s=>`<tr>
+    <td data-l="Company" class="cell-strong">${esc(s.name)}</td>
+    <td data-l="Domain" class="cell-mono cell-dim">${esc(s.domain||'—')}</td>
+    <td data-l="Engagement"><span class="badge ${s.type==='Escrow'?'sev-low':s.type==='No escrow'?'sev-high':'sev-unassigned'}">${esc(s.type)}</span></td>
+    <td data-l="Breach">${s.breached?`<span class="badge sev-critical">BREACHED</span>`:s.last_checked?'<span class="badge sev-low">CLEAR</span>':'<span class="cell-dim">Not checked</span>'}</td>
+    <td data-l="Checked" class="cell-dim">${s.last_checked?fmtDate(s.last_checked):'—'}</td>
+    <td><button class="icon-btn danger" aria-label="Delete supplier" onclick="delSupplier(${s.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg></button></td></tr>`).join('');
+  if(!DB.components.length)emptyRow(cb,6,'No components yet','Track firewalls, proxies and other defenses here.');
+  else cb.innerHTML=DB.components.map(c=>`<tr>
+    <td data-l="Component" class="cell-strong">${esc(c.name)}</td>
+    <td data-l="Status">${c.status==='In use'?'<b style="color:var(--low)">In use</b>':'<span class="cell-dim">Not in use</span>'}</td>
+    <td data-l="Version" class="cell-mono cell-dim">${esc(c.version||'unknown')}</td>
+    <td data-l="CVEs" class="cell-mono" style="color:${c.vulns>0?'var(--critical)':'var(--low)'}">${c.vulns??'—'}</td>
+    <td data-l="Scanned" class="cell-dim">${c.last_scan?fmtDate(c.last_scan):'—'}</td>
+    <td><button class="icon-btn danger" aria-label="Delete component" onclick="delComponent(${c.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg></button></td></tr>`).join('');
+}
+function addSupplier(){
+  const name=document.getElementById('sup-name').value.trim();
+  if(!name)return toast('Company name is required.','err');
+  const domain=normDomain(document.getElementById('sup-domain').value);
+  DB.suppliers.push({id:nextId(),name,domain,type:document.getElementById('sup-type').value,
+    breached:false,last_checked:null,created_at:nowISO()});
+  saveDB(DB);document.getElementById('sup-name').value='';document.getElementById('sup-domain').value='';
+  toast(`Supplier "${name}" added.`,'ok');loadSupply();
+}
+function delSupplier(id){if(!confirm('Remove this supplier?'))return;
+  DB.suppliers=DB.suppliers.filter(s=>s.id!==id);saveDB(DB);loadSupply();}
+function importSuppliers(file){
+  if(!file)return;
+  if(/\.cab$/i.test(file.name))return toast('CAB archives can\'t be parsed in the browser — export the list as CSV (name, engagement, domain) and import that.','err');
+  const r=new FileReader();
+  r.onload=()=>{
+    const lines=String(r.result).split(/\r?\n/).filter(l=>l.trim());
+    let added=0;
+    lines.forEach((line,i)=>{
+      const parts=line.split(/[,;\t]/).map(x=>x.trim().replace(/^"|"$/g,''));
+      if(i===0&&/name|company|חברה/i.test(parts[0]))return;
+      const[name,typeRaw,domain]=parts;
+      if(!name)return;
+      const t=/escrow/i.test(typeRaw||'')?(/no/i.test(typeRaw)?'No escrow':'Escrow'):'Unknown';
+      DB.suppliers.push({id:nextId(),name,domain:normDomain(domain),type:t,breached:false,last_checked:null,created_at:nowISO()});
+      added++;
+    });
+    saveDB(DB);toast(`Imported ${added} suppliers.`,added?'ok':'err');loadSupply();
+  };
+  r.readAsText(file);
+}
+async function checkBreaches(){
+  const btn=document.getElementById('breach-btn');
+  const targets=DB.suppliers.filter(s=>s.domain);
+  if(!targets.length)return toast('Add suppliers with domains first.','err');
+  btn.disabled=true;btn.textContent='Checking…';
+  try{
+    const res=await fetch('https://haveibeenpwned.com/api/v3/breaches');
+    if(!res.ok)throw new Error('HIBP catalog unavailable ('+res.status+')');
+    const breaches=await res.json();
+    const byDomain={};breaches.forEach(b=>{if(b.Domain)byDomain[b.Domain.toLowerCase()]=b;});
+    let hits=0;
+    targets.forEach(s=>{
+      const b=byDomain[s.domain];
+      s.last_checked=nowISO();
+      if(b){
+        if(!s.breached){notify(`SUPPLY-CHAIN ALERT: ${s.name} (${s.domain}) appears in breach "${b.Title}" dated ${b.BreachDate}. Review your exposure with this vendor.`,'Error');hits++;}
+        s.breached=true;s.breach_title=b.Title;s.breach_date=b.BreachDate;
+      }
+    });
+    saveDB(DB);loadSupply();
+    const st=await api('/stats');updateBadges(st.unread_notifications);
+    toast(hits?`⚠ ${hits} supplier(s) found in breach data — see Alerts.`:'No supplier domains in the HIBP catalog. All clear.',hits?'err':'ok');
+  }catch(e){toast(e.message,'err');}
+  finally{btn.disabled=false;btn.textContent='⛨ Check breaches';}
+}
+function addComponent(){
+  const name=document.getElementById('comp-name').value.trim();
+  if(!name)return toast('Component name is required.','err');
+  DB.components.push({id:nextId(),name,version:document.getElementById('comp-ver').value.trim(),
+    status:document.getElementById('comp-status').value,vulns:null,last_scan:null,created_at:nowISO()});
+  saveDB(DB);document.getElementById('comp-name').value='';document.getElementById('comp-ver').value='';
+  toast(`Component "${name}" added.`,'ok');loadSupply();
+}
+function delComponent(id){if(!confirm('Remove this component?'))return;
+  DB.components=DB.components.filter(c=>c.id!==id);saveDB(DB);loadSupply();}
+async function scanComponents(){
+  const comps=DB.components.filter(c=>c.status==='In use');
+  if(!comps.length)return toast('Add components marked "In use" first.','err');
+  const btn=document.getElementById('nvd-btn');btn.disabled=true;
+  toast(`Scanning ${comps.length} component(s) on NVD — ~7s each (rate limit)…`);
+  try{
+    for(let i=0;i<comps.length;i++){
+      const c=comps[i];btn.textContent=`Scanning ${i+1}/${comps.length}…`;
+      const q=encodeURIComponent(c.name+(c.version?' '+c.version:''));
+      try{
+        const r=await fetch('https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch='+q+'&resultsPerPage=1');
+        if(r.ok){
+          const d=await r.json();
+          const n=d.totalResults||0;
+          const prev=c.vulns;c.vulns=n;c.last_scan=nowISO();
+          if(n>0&&prev!==n)notify(`COMPONENT ALERT: "${c.name}${c.version?' '+c.version:''}" matches ${n} CVE record(s) on NVD. Review and patch urgently.`,'Error');
+        }
+      }catch(e){/* per-item failure tolerated */}
+      saveDB(DB);loadSupply();
+      if(i<comps.length-1)await sleep(7000);
+    }
+    const st=await api('/stats');updateBadges(st.unread_notifications);
+    toast('Component scan finished — results in the table, alerts for any matches.','ok');
+  }finally{btn.disabled=false;btn.textContent='⌕ Scan CVEs (NVD)';}
+}
 
 /* ============================================================
    Boot
