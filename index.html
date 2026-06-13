@@ -712,6 +712,17 @@ tbody tr.clickable:hover{background:var(--panel-2)}
       </div>
 
       <div class="panel">
+        <div class="panel-head"><span class="panel-title" data-t="p_pwchk">Password exposure check</span>
+          <span class="panel-meta">k-anonymity · private</span></div>
+        <div class="form-row">
+          <input id="pw-input" type="password" placeholder="Password to test" autocomplete="off">
+          <button class="btn btn-primary" id="pw-btn" onclick="checkPassword()">⌕ <span data-t="b_pwchk">Check password</span></button>
+        </div>
+        <div id="pw-result" style="padding:0 20px 14px;display:none"></div>
+        <p class="cell-dim" style="padding:0 20px 16px;font-size:12px" data-t="pw_note">Only the first 5 characters of the password's SHA-1 hash are sent — the password itself never leaves this device.</p>
+      </div>
+
+      <div class="panel">
         <div class="panel-head"><span class="panel-title" data-t="p_addsup">Add supplier</span>
           <div class="inline-actions">
             <input type="file" id="sup-file" accept=".csv,.txt,.cab" style="display:none" onchange="importSuppliers(this.files[0])">
@@ -1212,6 +1223,7 @@ async function loadDashboard(){
     if(sr)sr.innerHTML=`
       <tr><td data-l="Source" class="cell-strong">HIBP <span class="cell-dim cell-mono">haveibeenpwned.com</span></td><td data-l="Powers" class="cell-dim">Supply-chain breach status</td><td data-l="Updated" class="cell-mono">${fS(meta.hibp)}</td></tr>
       <tr><td data-l="Source" class="cell-strong">XposedOrNot <span class="cell-dim cell-mono">api.xposedornot.com</span></td><td data-l="Powers" class="cell-dim">Email address exposure</td><td data-l="Updated" class="cell-mono">${fS(meta.xon)}</td></tr>
+      <tr><td data-l="Source" class="cell-strong">Pwned Passwords <span class="cell-dim cell-mono">api.pwnedpasswords.com</span></td><td data-l="Powers" class="cell-dim">Password exposure (k-anonymity)</td><td data-l="Updated" class="cell-mono">${fS(meta.pwned)}</td></tr>
       <tr><td data-l="Source" class="cell-strong">NVD / NIST <span class="cell-dim cell-mono">services.nvd.nist.gov</span></td><td data-l="Powers" class="cell-dim">Component CVE matches</td><td data-l="Updated" class="cell-mono">${fS(meta.nvd)}</td></tr>
       <tr><td data-l="Source" class="cell-strong">Local workspace <span class="cell-dim cell-mono">this browser</span></td><td data-l="Powers" class="cell-dim">Projects, suppliers, alerts</td><td data-l="Updated" class="cell-mono">${fS(meta.modified)}</td></tr>`;
   }catch(e){toast(e.message,'err');}
@@ -1464,6 +1476,45 @@ async function checkBreaches(){
   }catch(e){toast(e.message,'err');}
   finally{btn.disabled=false;btn.textContent='⛨ Check breaches';}
 }
+async function sha1hex(str){
+  const buf=await crypto.subtle.digest('SHA-1',new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('').toUpperCase();
+}
+async function checkPassword(){
+  const pw=document.getElementById('pw-input').value;
+  const box=document.getElementById('pw-result');
+  if(!pw)return toast('Enter a password to test.','err');
+  const btn=document.getElementById('pw-btn');btn.disabled=true;
+  box.style.display='block';
+  box.innerHTML='<div class="skeleton" style="width:50%"></div>';
+  try{
+    const hash=await sha1hex(pw);
+    const prefix=hash.slice(0,5),suffix=hash.slice(5);
+    // only the 5-char prefix is sent — k-anonymity
+    const r=await fetch('https://api.pwnedpasswords.com/range/'+prefix);
+    DB.meta=DB.meta||{};DB.meta.pwned=nowISO();saveDB(DB);
+    if(!r.ok)throw new Error('Pwned Passwords unavailable ('+r.status+')');
+    const text=await r.text();
+    let count=0;
+    text.split('\n').forEach(line=>{
+      const[suf,c]=line.trim().split(':');
+      if(suf===suffix)count=parseInt(c,10);
+    });
+    if(count>0){
+      box.innerHTML=`<div style="margin-bottom:8px"><span class="badge sev-critical">SEEN ${count.toLocaleString()} TIMES</span></div>
+        <p class="cell-dim" style="font-size:12.5px">This password appears in known breach corpuses. Do not use it — choose a unique password and enable MFA.</p>`;
+      toast('⚠ This password is compromised — seen '+count.toLocaleString()+' times.','err');
+    }else{
+      box.innerHTML=`<div><span class="badge sev-low">NOT FOUND</span></div>
+        <p class="cell-dim" style="font-size:12.5px;margin-top:8px">This password was not found in the Pwned Passwords corpus. Absence isn't a guarantee of strength — length and uniqueness still matter.</p>`;
+      toast('Not found in breach corpus.','ok');
+    }
+    document.getElementById('pw-input').value='';
+  }catch(e){
+    box.innerHTML=`<span class="badge sev-high">${esc(e.message)}</span>`;
+    toast(e.message,'err');
+  }finally{btn.disabled=false;}
+}
 async function checkEmail(){
   const raw=document.getElementById('eml-input').value.trim().toLowerCase();
   const box=document.getElementById('eml-result');
@@ -1655,6 +1706,8 @@ const T={
  th_breach:['Breach','פריצה'],th_bdate:['Breach date','תאריך פריצה'],th_data:['Exposed data','דאטה שדלפה'],
  th_when:['When','מתי'],th_src2:['Source','מקור'],th_result:['Result','תוצאה'],
  p_emailchk:['Email exposure check','בדיקת חשיפת מייל'],b_emailchk:['Check email','בדוק מייל'],
+ p_pwchk:['Password exposure check','בדיקת חשיפת סיסמה'],b_pwchk:['Check password','בדוק סיסמה'],
+ pw_note:['Only the first 5 characters of the password hash are sent — the password never leaves this device.','נשלחים רק 5 התווים הראשונים של ה-hash — הסיסמה עצמה לעולם לא עוזבת את המכשיר.'],
 };
 function setTxt(el,txt){
   for(const n of el.childNodes){if(n.nodeType===3&&n.nodeValue.trim()){n.nodeValue=' '+txt;return;}}
