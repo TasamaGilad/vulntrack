@@ -1416,6 +1416,12 @@ async function deletePolicy(id){if(!confirm('Delete this policy?'))return;try{aw
    ============================================================ */
 const normDomain=d=>String(d||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function netErr(e,sourceName){
+  const m=String(e&&e.message||e);
+  if(/Failed to fetch|NetworkError|load failed/i.test(m))
+    return `${sourceName} could not be reached from the browser (network or CORS block). On the deployed backend this runs server-side with your API key.`;
+  return m;
+}
 
 function loadSupply(){
   const sb=document.getElementById('sup-rows'),cb=document.getElementById('comp-rows');
@@ -1506,9 +1512,9 @@ async function checkBreaches(){
     });
     saveDB(DB);loadSupply();
     const st=await api('/stats');updateBadges(st.unread_notifications);
-    toast(hits?`⚠ ${hits} supplier(s) found in breach data — see Alerts.`:'No supplier domains in the HIBP catalog. All clear.',hits?'err':'ok');
-  }catch(e){toast(e.message,'err');}
-  finally{btn.disabled=false;btn.textContent='⛨ Check breaches';}
+    toast(hits?`⚠ ${hits} supplier(s) found in breach data — see Alerts.`:`Checked ${targets.length} domain(s) — none in the HIBP catalog.`,hits?'err':'ok');
+  }catch(e){toast(netErr(e,'HIBP'),'err');}
+  finally{btn.disabled=false;btn.textContent=(isHe()?'⛨ בדיקת פריצות':'⛨ Check breaches');}
 }
 async function sha1hex(str){
   const buf=await crypto.subtle.digest('SHA-1',new TextEncoder().encode(str));
@@ -1545,8 +1551,9 @@ async function checkPassword(){
     }
     document.getElementById('pw-input').value='';
   }catch(e){
-    box.innerHTML=`<span class="badge sev-high">${esc(e.message)}</span>`;
-    toast(e.message,'err');
+    const msg=netErr(e,'Pwned Passwords');
+    box.innerHTML=`<span class="badge sev-high">${esc(msg)}</span>`;
+    toast(msg,'err');
   }finally{btn.disabled=false;}
 }
 async function checkEmail(){
@@ -1578,8 +1585,9 @@ async function checkEmail(){
     const st=await api('/stats');updateBadges(st.unread_notifications);
     toast(`⚠ Email exposed in ${list.length} breach(es).`,'err');
   }catch(e){
-    box.innerHTML=`<div class="chip" style="border-color:rgba(255,59,107,.4)"><span class="dot" style="background:var(--critical)"></span>${esc(e.message)}</div>`;
-    toast(e.message,'err');
+    const msg=netErr(e,'XposedOrNot');
+    box.innerHTML=`<div class="chip" style="border-color:rgba(255,159,67,.4)"><span class="dot" style="background:var(--high)"></span>${esc(msg)}</div>`;
+    toast(msg,'err');
   }finally{btn.disabled=false;}
 }
 function addComponent(){
@@ -1695,7 +1703,7 @@ async function checkOneSupplier(){
     }
     saveDB(DB);renderSupplier();
     toast(b?'⚠ Breach match found — see findings.':'No breach in the free catalog for this domain.',b?'err':'ok');
-  }catch(e){toast(e.message,'err');}
+  }catch(e){toast(netErr(e,'HIBP'),'err');}
   finally{btn.disabled=false;}
 }
 
