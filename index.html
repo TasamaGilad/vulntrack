@@ -782,9 +782,19 @@ tbody tr.clickable:hover{background:var(--panel-2)}
         <div class="panel-head"><span class="panel-title" data-t="p_comp">Security components</span>
           <button class="btn btn-ghost" id="nvd-btn" data-t="b_nvd" onclick="scanComponents()">⌕ Scan CVEs (NVD)</button></div>
         <div class="form-row">
-          <input id="comp-name" placeholder="Component (e.g. pfSense, Squid proxy)" maxlength="120">
-          <input id="comp-ver" placeholder="Version (empty = unknown)" maxlength="40" style="max-width:200px">
-          <select id="comp-status" style="max-width:160px" aria-label="In use?">
+          <select id="comp-cat" aria-label="Category" onchange="onCatChange()">
+            <option value="">— Category —</option>
+          </select>
+          <select id="comp-prod" aria-label="Product" onchange="onProdChange()" disabled>
+            <option value="">— Product —</option>
+          </select>
+        </div>
+        <div class="form-row" style="padding-top:0">
+          <select id="comp-ver2" aria-label="Version" disabled>
+            <option value="">— Version —</option>
+          </select>
+          <input id="comp-ver-free" placeholder="…or type version" maxlength="40" style="max-width:180px">
+          <select id="comp-status" style="max-width:150px" aria-label="In use?">
             <option>In use</option><option>Not in use</option>
           </select>
           <button class="btn btn-primary" onclick="addComponent()" data-t="b_add">＋ Add</button>
@@ -1136,7 +1146,7 @@ function go(view){
   if(view==='projects')loadProjects();
   if(view==='notifications')loadNotifications();
   if(view==='policies')loadPolicies();
-  if(view==='supply')loadSupply();
+  if(view==='supply'){initCatalog();loadSupply();}
   window.scrollTo({top:0,behavior:reduceMotion()?'auto':'smooth'});
 }
 function updateBadges(n){
@@ -1556,6 +1566,87 @@ async function checkPassword(){
     toast(msg,'err');
   }finally{btn.disabled=false;}
 }
+/* Built-in catalog of common security components & known versions.
+   Versions are a curated starting list; NVD scan finds the actual CVEs. */
+const COMP_CATALOG={
+  "Firewall":{
+    "pfSense":["2.7.2","2.7.0","2.6.0","2.5.2"],
+    "FortiGate (FortiOS)":["7.4.3","7.2.8","7.2.5","7.0.15","6.4.15"],
+    "Palo Alto PAN-OS":["11.1.2","11.0.4","10.2.9","10.1.14"],
+    "Cisco ASA":["9.20","9.18","9.16","9.14"],
+    "OPNsense":["24.1","23.7","23.1"],
+    "Check Point Gaia":["R81.20","R81.10","R80.40"]
+  },
+  "Proxy":{
+    "Squid":["6.6","6.5","5.9","5.7","4.17"],
+    "HAProxy":["2.9","2.8","2.6","2.4"],
+    "NGINX":["1.25.4","1.24.0","1.22.1","1.20.2"],
+    "Envoy":["1.29","1.28","1.27"]
+  },
+  "WAF":{
+    "ModSecurity":["3.0.12","3.0.10","2.9.7"],
+    "Cloudflare WAF":["managed"],
+    "AWS WAF":["v2"],
+    "F5 BIG-IP ASM":["17.1","16.1","15.1"]
+  },
+  "VPN":{
+    "OpenVPN":["2.6.9","2.6.8","2.5.9","2.4.12"],
+    "WireGuard":["1.0.20210914"],
+    "Cisco AnyConnect":["4.10","4.9"],
+    "Fortinet FortiClient":["7.2","7.0","6.4"]
+  },
+  "EDR / Antivirus":{
+    "CrowdStrike Falcon":["7.x","6.x"],
+    "Microsoft Defender":["current"],
+    "SentinelOne":["23.x","22.x"],
+    "ClamAV":["1.3.0","1.2.1","1.0.5"]
+  },
+  "IDS / IPS":{
+    "Snort":["3.1.78","3.1.60","2.9.20"],
+    "Suricata":["7.0.3","6.0.16","5.0.10"],
+    "Zeek":["6.0","5.2","4.2"]
+  },
+  "Load Balancer":{
+    "F5 BIG-IP LTM":["17.1","16.1","15.1"],
+    "Citrix ADC (NetScaler)":["14.1","13.1","13.0"],
+    "HAProxy":["2.9","2.8","2.6"]
+  },
+  "SIEM":{
+    "Splunk":["9.2","9.1","9.0","8.2"],
+    "Elastic SIEM":["8.13","8.11","8.9"],
+    "Wazuh":["4.7.2","4.6.0","4.5.4"]
+  }
+};
+function initCatalog(){
+  const cat=document.getElementById('comp-cat');
+  if(cat.options.length>1)return; // once
+  Object.keys(COMP_CATALOG).forEach(k=>{
+    const o=document.createElement('option');o.value=k;o.textContent=k;cat.appendChild(o);});
+}
+function onCatChange(){
+  const cat=document.getElementById('comp-cat').value;
+  const prod=document.getElementById('comp-prod');
+  prod.innerHTML='<option value="">— Product —</option>';
+  const ver=document.getElementById('comp-ver2');
+  ver.innerHTML='<option value="">— Version —</option>';ver.disabled=true;
+  if(cat&&COMP_CATALOG[cat]){
+    Object.keys(COMP_CATALOG[cat]).forEach(p=>{
+      const o=document.createElement('option');o.value=p;o.textContent=p;prod.appendChild(o);});
+    prod.disabled=false;
+  }else prod.disabled=true;
+}
+function onProdChange(){
+  const cat=document.getElementById('comp-cat').value;
+  const prod=document.getElementById('comp-prod').value;
+  const ver=document.getElementById('comp-ver2');
+  ver.innerHTML='<option value="">— Version —</option>';
+  if(cat&&prod&&COMP_CATALOG[cat]&&COMP_CATALOG[cat][prod]){
+    COMP_CATALOG[cat][prod].forEach(v=>{
+      const o=document.createElement('option');o.value=v;o.textContent=v;ver.appendChild(o);});
+    const o=document.createElement('option');o.value='__unknown';o.textContent='Unknown / other';ver.appendChild(o);
+    ver.disabled=false;
+  }else ver.disabled=true;
+}
 async function checkEmail(){
   const raw=document.getElementById('eml-input').value.trim().toLowerCase();
   const box=document.getElementById('eml-result');
@@ -1590,13 +1681,37 @@ async function checkEmail(){
     toast(msg,'err');
   }finally{btn.disabled=false;}
 }
-function addComponent(){
-  const name=document.getElementById('comp-name').value.trim();
-  if(!name)return toast('Component name is required.','err');
-  DB.components.push({id:nextId(),name,version:document.getElementById('comp-ver').value.trim(),
-    status:document.getElementById('comp-status').value,vulns:null,last_scan:null,created_at:nowISO()});
-  saveDB(DB);document.getElementById('comp-name').value='';document.getElementById('comp-ver').value='';
-  toast(`Component "${name}" added.`,'ok');loadSupply();
+async function addComponent(){
+  const prod=document.getElementById('comp-prod').value;
+  const cat=document.getElementById('comp-cat').value;
+  if(!prod)return toast('Pick a category and product first.','err');
+  let ver=document.getElementById('comp-ver2').value;
+  if(ver==='__unknown'||!ver)ver=document.getElementById('comp-ver-free').value.trim();
+  const comp={id:nextId(),name:prod,category:cat,version:ver,
+    status:document.getElementById('comp-status').value,vulns:null,last_scan:null,created_at:nowISO()};
+  DB.components.push(comp);saveDB(DB);
+  // reset form
+  document.getElementById('comp-cat').value='';onCatChange();
+  document.getElementById('comp-ver-free').value='';
+  toast(`Component "${prod}" added — scanning NVD…`,'ok');loadSupply();
+  // auto-scan this one component for CVEs immediately
+  if(comp.status==='In use')scanOneComponent(comp.id);
+}
+async function scanOneComponent(id){
+  const c=DB.components.find(x=>x.id===id);if(!c)return;
+  try{
+    const q=encodeURIComponent((c.name+' '+(c.version||'')).trim());
+    const r=await fetch('https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch='+q+'&resultsPerPage=1');
+    DB.meta=DB.meta||{};DB.meta.nvd=nowISO();
+    if(r.ok){
+      const d=await r.json();const n=d.totalResults||0;
+      c.vulns=n;c.last_scan=nowISO();
+      if(n>0)notify(`COMPONENT ALERT: "${c.name}${c.version?' '+c.version:''}" matches ${n} CVE record(s) on NVD — review and patch.`,'Error');
+      saveDB(DB);loadSupply();
+      const st=await api('/stats');updateBadges(st.unread_notifications);
+      toast(n>0?`⚠ ${c.name}: ${n} CVE match(es) found.`:`${c.name}: no CVEs found on NVD.`,n>0?'err':'ok');
+    }
+  }catch(e){toast(netErr(e,'NVD'),'err');}
 }
 function delComponent(id){if(!confirm('Remove this component?'))return;
   DB.components=DB.components.filter(c=>c.id!==id);saveDB(DB);loadSupply();}
