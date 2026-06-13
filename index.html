@@ -702,6 +702,16 @@ tbody tr.clickable:hover{background:var(--panel-2)}
       </div>
 
       <div class="panel">
+        <div class="panel-head"><span class="panel-title" data-t="p_emailchk">Email exposure check</span>
+          <span class="panel-meta">XON + HIBP catalog</span></div>
+        <div class="form-row">
+          <input id="eml-input" type="email" placeholder="email@example.com" autocomplete="off">
+          <button class="btn btn-primary" id="eml-btn" onclick="checkEmail()">⌕ <span data-t="b_emailchk">Check email</span></button>
+        </div>
+        <div id="eml-result" style="padding:0 20px 18px;display:none"></div>
+      </div>
+
+      <div class="panel">
         <div class="panel-head"><span class="panel-title" data-t="p_addsup">Add supplier</span>
           <div class="inline-actions">
             <input type="file" id="sup-file" accept=".csv,.txt,.cab" style="display:none" onchange="importSuppliers(this.files[0])">
@@ -1201,6 +1211,7 @@ async function loadDashboard(){
     const sr=document.getElementById('src-rows');
     if(sr)sr.innerHTML=`
       <tr><td data-l="Source" class="cell-strong">HIBP <span class="cell-dim cell-mono">haveibeenpwned.com</span></td><td data-l="Powers" class="cell-dim">Supply-chain breach status</td><td data-l="Updated" class="cell-mono">${fS(meta.hibp)}</td></tr>
+      <tr><td data-l="Source" class="cell-strong">XposedOrNot <span class="cell-dim cell-mono">api.xposedornot.com</span></td><td data-l="Powers" class="cell-dim">Email address exposure</td><td data-l="Updated" class="cell-mono">${fS(meta.xon)}</td></tr>
       <tr><td data-l="Source" class="cell-strong">NVD / NIST <span class="cell-dim cell-mono">services.nvd.nist.gov</span></td><td data-l="Powers" class="cell-dim">Component CVE matches</td><td data-l="Updated" class="cell-mono">${fS(meta.nvd)}</td></tr>
       <tr><td data-l="Source" class="cell-strong">Local workspace <span class="cell-dim cell-mono">this browser</span></td><td data-l="Powers" class="cell-dim">Projects, suppliers, alerts</td><td data-l="Updated" class="cell-mono">${fS(meta.modified)}</td></tr>`;
   }catch(e){toast(e.message,'err');}
@@ -1453,6 +1464,39 @@ async function checkBreaches(){
   }catch(e){toast(e.message,'err');}
   finally{btn.disabled=false;btn.textContent='⛨ Check breaches';}
 }
+async function checkEmail(){
+  const raw=document.getElementById('eml-input').value.trim().toLowerCase();
+  const box=document.getElementById('eml-result');
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(raw))return toast('Enter a valid email address.','err');
+  const btn=document.getElementById('eml-btn');btn.disabled=true;
+  box.style.display='block';
+  box.innerHTML='<div class="empty" style="padding:18px"><div class="skeleton" style="width:60%;margin:0 auto"></div></div>';
+  try{
+    // XposedOrNot — free, no key, browser-friendly
+    const r=await fetch('https://api.xposedornot.com/v1/check-email/'+encodeURIComponent(raw));
+    DB.meta=DB.meta||{};DB.meta.xon=nowISO();saveDB(DB);
+    if(r.status===404){
+      box.innerHTML='<div class="chip" style="border-color:rgba(52,229,163,.4)"><span class="dot" style="background:var(--low)"></span>No exposure found for this email in XON.</div>';
+      toast('Clean — no breaches found for that email.','ok');return;
+    }
+    if(!r.ok)throw new Error('XON unavailable ('+r.status+')');
+    const d=await r.json();
+    const list=(d.breaches&&d.breaches[0])?d.breaches[0]:[];
+    if(!list.length){
+      box.innerHTML='<div class="chip" style="border-color:rgba(52,229,163,.4)"><span class="dot" style="background:var(--low)"></span>No exposure found for this email.</div>';
+      toast('Clean — no breaches found.','ok');return;
+    }
+    box.innerHTML=`<div style="margin-bottom:12px"><span class="badge sev-high">EXPOSED in ${list.length} breach(es)</span></div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">${list.map(b=>`<span class="chip"><span class="dot" style="background:var(--high)"></span>${esc(b)}</span>`).join('')}</div>
+      <p class="cell-dim" style="margin-top:12px;font-size:12.5px">Source: XposedOrNot. Recommend immediate password rotation and MFA for this address.</p>`;
+    notify(`EMAIL EXPOSURE: ${raw} found in ${list.length} breach(es): ${list.slice(0,5).join(', ')}`,'Warning');
+    const st=await api('/stats');updateBadges(st.unread_notifications);
+    toast(`⚠ Email exposed in ${list.length} breach(es).`,'err');
+  }catch(e){
+    box.innerHTML=`<div class="chip" style="border-color:rgba(255,59,107,.4)"><span class="dot" style="background:var(--critical)"></span>${esc(e.message)}</div>`;
+    toast(e.message,'err');
+  }finally{btn.disabled=false;}
+}
 function addComponent(){
   const name=document.getElementById('comp-name').value.trim();
   if(!name)return toast('Component name is required.','err');
@@ -1610,6 +1654,7 @@ const T={
  p_hist:['Check history','היסטוריית בדיקות'],p_hist_m:['audit log of scans','יומן בדיקות'],
  th_breach:['Breach','פריצה'],th_bdate:['Breach date','תאריך פריצה'],th_data:['Exposed data','דאטה שדלפה'],
  th_when:['When','מתי'],th_src2:['Source','מקור'],th_result:['Result','תוצאה'],
+ p_emailchk:['Email exposure check','בדיקת חשיפת מייל'],b_emailchk:['Check email','בדוק מייל'],
 };
 function setTxt(el,txt){
   for(const n of el.childNodes){if(n.nodeType===3&&n.nodeValue.trim()){n.nodeValue=' '+txt;return;}}
