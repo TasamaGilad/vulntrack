@@ -62,6 +62,15 @@ html[dir="rtl"] .nav-item.active::before{left:auto;right:0}
 html[dir="rtl"] .sidebar{border-right:none;border-left:1px solid var(--line)}
 html[dir="rtl"] .stat::before{left:auto;right:0}
 html[dir="rtl"] .pb-val{text-align:left}
+html[dir="rtl"] input,html[dir="rtl"] select{text-align:right;direction:rtl}
+html[dir="rtl"] input::placeholder{text-align:right}
+html[dir="rtl"] .cell-mono,html[dir="rtl"] .mono{direction:ltr;unicode-bidi:embed;display:inline-block}
+html[dir="rtl"] .back-link{flex-direction:row-reverse}
+html[dir="rtl"] .back-link svg{transform:scaleX(-1)}
+.back-link{min-height:42px;align-items:center}
+html[dir="rtl"] .form-row input,html[dir="rtl"] .form-row select{text-align:right}
+html[dir="rtl"] .eng-legend,html[dir="rtl"] .dist-legend,html[dir="rtl"] .hero-chips{direction:rtl}
+html[dir="rtl"] .panel-meta{direction:rtl}
 *{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 html,body{height:100%}
@@ -450,7 +459,13 @@ tbody tr.clickable:hover{background:var(--panel-2)}
     border-radius:50%;background:var(--critical);box-shadow:0 0 8px var(--critical)}
 }
 
-/* phone: tables -> cards */
+/* phone: form rows stack full-width to stop clipping */
+@media (max-width:600px){
+  .form-row{flex-direction:column;gap:9px}
+  .form-row input,.form-row select,.form-row button{width:100%!important;max-width:none!important;min-width:0!important;flex:none}
+  .page-head .inline-actions{width:100%}
+  .page-head .inline-actions .btn{flex:1}
+}
 @media (max-width:600px){
   .cardify table,.cardify tbody,.cardify tr,.cardify td{display:block;min-width:0}
   .cardify thead{display:none}
@@ -727,7 +742,7 @@ tbody tr.clickable:hover{background:var(--panel-2)}
           <div class="inline-actions">
             <input type="file" id="sup-file" accept=".csv,.txt,.cab" style="display:none" onchange="importSuppliers(this.files[0])">
             <button class="btn btn-ghost" data-t="b_import" onclick="document.getElementById('sup-file').click()">⇪ Import file</button>
-            <button class="btn btn-primary" id="breach-btn" onclick="checkBreaches()">⛨ Check breaches</button>
+            <button class="btn btn-primary" id="breach-btn" data-t="b_breach" onclick="checkBreaches()">⛨ Check breaches</button>
           </div></div>
         <div class="form-row">
           <input id="sup-name" placeholder="Company name (required)" maxlength="120">
@@ -754,7 +769,7 @@ tbody tr.clickable:hover{background:var(--panel-2)}
 
       <div class="panel">
         <div class="panel-head"><span class="panel-title" data-t="p_comp">Security components</span>
-          <button class="btn btn-ghost" id="nvd-btn" onclick="scanComponents()">⌕ Scan CVEs (NVD)</button></div>
+          <button class="btn btn-ghost" id="nvd-btn" data-t="b_nvd" onclick="scanComponents()">⌕ Scan CVEs (NVD)</button></div>
         <div class="form-row">
           <input id="comp-name" placeholder="Component (e.g. pfSense, Squid proxy)" maxlength="120">
           <input id="comp-ver" placeholder="Version (empty = unknown)" maxlength="40" style="max-width:200px">
@@ -1029,6 +1044,14 @@ async function api(path,method='GET',body=null){
    Helpers
    ============================================================ */
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const DT={Company:'חברה',Domain:'דומיין',Engagement:'התקשרות',Breach:'פריצה',Checked:'נבדק',
+ Name:'שם',Version:'גרסה',Deps:'תלויות',CVEs:'CVEs',Created:'נוצר',Library:'ספרייה',
+ Component:'רכיב',Status:'סטטוס',Scanned:'נסרק',Message:'הודעה',Type:'סוג',Time:'זמן',
+ CVE:'CVE',CVSS:'CVSS',Severity:'חומרה',Policy:'מדיניות',Threshold:'סף',Remediation:'תיקון',State:'מצב',
+ Alert:'התראה',When:'מתי',Source:'מקור',Result:'תוצאה',Date:'תאריך',Data:'דאטה',
+ Powers:'מזין',Updated:'עודכן','Approved by':'אושר על-ידי',Justification:'נימוק','Approved at':'אושר ב'};
+const isHe=()=>(localStorage.getItem('vt_lang')||'en')==='he';
+const dl=s=>isHe()&&DT[s]?DT[s]:s;
 const sevBadge=s=>`<span class="badge sev-${esc((s||'unassigned').toLowerCase())}">${esc(s)}</span>`;
 const typeBadge=t=>`<span class="badge t-${esc((t||'info').toLowerCase())}">${esc(t)}</span>`;
 const sevColor=s=>({Critical:'var(--critical)',High:'var(--high)',Medium:'var(--medium)',Low:'var(--low)'}[s]||'var(--muted)');
@@ -1211,21 +1234,21 @@ async function loadDashboard(){
     cves.sort((a,b)=>b.cvss_score-a.cvss_score);cves=cves.slice(0,6);
     if(!cves.length)return emptyRow(cvesBody,5,'All clear','No vulnerabilities recorded yet.');
     cvesBody.innerHTML=cves.map(c=>`<tr>
-      <td data-l="CVE" class="cell-strong cell-mono">${esc(c.cve_id)}</td>
-      <td data-l="Component" class="cell-dim">${esc(c.dependency)}</td>
-      <td data-l="CVSS">${cvssCell(c.cvss_score)}</td>
-      <td data-l="Severity">${sevBadge(c.severity)}</td>
-      <td data-l="Status" class="st-${esc(c.status.toLowerCase())}">${esc(c.status)}</td></tr>`).join('');
+      <td data-l="${dl('CVE')}" class="cell-strong cell-mono">${esc(c.cve_id)}</td>
+      <td data-l="${dl('Component')}" class="cell-dim">${esc(c.dependency)}</td>
+      <td data-l="${dl('CVSS')}">${cvssCell(c.cvss_score)}</td>
+      <td data-l="${dl('Severity')}">${sevBadge(c.severity)}</td>
+      <td data-l="${dl('Status')}" class="st-${esc(c.status.toLowerCase())}">${esc(c.status)}</td></tr>`).join('');
     // ---- data sources ----
     const meta=DB.meta||{};
     const fS=v=>v?fmtDate(v):'\u2014';
     const sr=document.getElementById('src-rows');
     if(sr)sr.innerHTML=`
-      <tr><td data-l="Source" class="cell-strong">HIBP <span class="cell-dim cell-mono">haveibeenpwned.com</span></td><td data-l="Powers" class="cell-dim">Supply-chain breach status</td><td data-l="Updated" class="cell-mono">${fS(meta.hibp)}</td></tr>
-      <tr><td data-l="Source" class="cell-strong">XposedOrNot <span class="cell-dim cell-mono">api.xposedornot.com</span></td><td data-l="Powers" class="cell-dim">Email address exposure</td><td data-l="Updated" class="cell-mono">${fS(meta.xon)}</td></tr>
-      <tr><td data-l="Source" class="cell-strong">Pwned Passwords <span class="cell-dim cell-mono">api.pwnedpasswords.com</span></td><td data-l="Powers" class="cell-dim">Password exposure (k-anonymity)</td><td data-l="Updated" class="cell-mono">${fS(meta.pwned)}</td></tr>
-      <tr><td data-l="Source" class="cell-strong">NVD / NIST <span class="cell-dim cell-mono">services.nvd.nist.gov</span></td><td data-l="Powers" class="cell-dim">Component CVE matches</td><td data-l="Updated" class="cell-mono">${fS(meta.nvd)}</td></tr>
-      <tr><td data-l="Source" class="cell-strong">Local workspace <span class="cell-dim cell-mono">this browser</span></td><td data-l="Powers" class="cell-dim">Projects, suppliers, alerts</td><td data-l="Updated" class="cell-mono">${fS(meta.modified)}</td></tr>`;
+      <tr><td data-l="${dl('Source')}" class="cell-strong">HIBP <span class="cell-dim cell-mono">haveibeenpwned.com</span></td><td data-l="${dl('Powers')}" class="cell-dim">Supply-chain breach status</td><td data-l="${dl('Updated')}" class="cell-mono">${fS(meta.hibp)}</td></tr>
+      <tr><td data-l="${dl('Source')}" class="cell-strong">XposedOrNot <span class="cell-dim cell-mono">api.xposedornot.com</span></td><td data-l="${dl('Powers')}" class="cell-dim">Email address exposure</td><td data-l="${dl('Updated')}" class="cell-mono">${fS(meta.xon)}</td></tr>
+      <tr><td data-l="${dl('Source')}" class="cell-strong">Pwned Passwords <span class="cell-dim cell-mono">api.pwnedpasswords.com</span></td><td data-l="${dl('Powers')}" class="cell-dim">Password exposure (k-anonymity)</td><td data-l="${dl('Updated')}" class="cell-mono">${fS(meta.pwned)}</td></tr>
+      <tr><td data-l="${dl('Source')}" class="cell-strong">NVD / NIST <span class="cell-dim cell-mono">services.nvd.nist.gov</span></td><td data-l="${dl('Powers')}" class="cell-dim">Component CVE matches</td><td data-l="${dl('Updated')}" class="cell-mono">${fS(meta.nvd)}</td></tr>
+      <tr><td data-l="${dl('Source')}" class="cell-strong">Local workspace <span class="cell-dim cell-mono">this browser</span></td><td data-l="${dl('Powers')}" class="cell-dim">Projects, suppliers, alerts</td><td data-l="${dl('Updated')}" class="cell-mono">${fS(meta.modified)}</td></tr>`;
   }catch(e){toast(e.message,'err');}
 }
 
@@ -1236,14 +1259,14 @@ async function loadProjects(){
   const body=document.getElementById('proj-rows');skeletonRows(body,6);
   try{
     const data=await api('/projects');
-    document.getElementById('proj-count').textContent=data.total+' total';
+    document.getElementById('proj-count').textContent=data.total+(isHe()?' סה"כ':' total');
     if(!data.projects.length)return emptyRow(body,6,'No projects yet','Create your first project above to start tracking.');
     body.innerHTML=data.projects.map(p=>`<tr class="clickable" onclick="openProject(${p.id})">
-      <td data-l="Name" class="cell-strong">${esc(p.name)}</td>
-      <td data-l="Version" class="cell-mono cell-dim">${esc(p.version)}</td>
-      <td data-l="Deps" class="cell-mono">${p.dependencies_count}</td>
-      <td data-l="CVEs" class="cell-mono" style="color:${p.cves_count>0?'var(--high)':'var(--low)'}">${p.cves_count}</td>
-      <td data-l="Created" class="cell-dim">${fmtDate(p.created_at)}</td>
+      <td data-l="${dl('Name')}" class="cell-strong">${esc(p.name)}</td>
+      <td data-l="${dl('Version')}" class="cell-mono cell-dim">${esc(p.version)}</td>
+      <td data-l="${dl('Deps')}" class="cell-mono">${p.dependencies_count}</td>
+      <td data-l="${dl('CVEs')}" class="cell-mono" style="color:${p.cves_count>0?'var(--high)':'var(--low)'}">${p.cves_count}</td>
+      <td data-l="${dl('Created')}" class="cell-dim">${fmtDate(p.created_at)}</td>
       <td onclick="event.stopPropagation()"><button class="icon-btn danger" aria-label="Delete project" onclick="deleteProject(${p.id},'${esc(p.name)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td></tr>`).join('');
   }catch(e){toast(e.message,'err');emptyRow(body,6,'Could not load','Something went wrong loading projects.');}
 }
@@ -1274,17 +1297,17 @@ async function openProject(id){
     document.getElementById('pd-sub').textContent=`v${d.project.version} · ${d.dependencies.length} dependencies · ${d.total_cves} CVEs`;
     if(!d.dependencies.length)emptyRow(dB,4,'No dependencies','Add the first library above.');
     else dB.innerHTML=d.dependencies.map(dep=>`<tr>
-      <td data-l="Library" class="cell-strong">${esc(dep.name)}</td>
-      <td data-l="Version" class="cell-mono cell-dim">${esc(dep.version)}</td>
-      <td data-l="CVEs" class="cell-mono" style="color:${dep.cves_count>0?'var(--high)':'var(--low)'}">${dep.cves_count}</td>
+      <td data-l="${dl('Library')}" class="cell-strong">${esc(dep.name)}</td>
+      <td data-l="${dl('Version')}" class="cell-mono cell-dim">${esc(dep.version)}</td>
+      <td data-l="${dl('CVEs')}" class="cell-mono" style="color:${dep.cves_count>0?'var(--high)':'var(--low)'}">${dep.cves_count}</td>
       <td><button class="icon-btn danger" aria-label="Remove dependency" onclick="removeDependency(${dep.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg></button></td></tr>`).join('');
     if(!d.cves.length)emptyRow(cB,6,'No vulnerabilities','This project is clean.');
     else cB.innerHTML=d.cves.map(c=>`<tr>
-      <td data-l="CVE" class="cell-strong cell-mono">${esc(c.cve_id)}</td>
-      <td data-l="Component" class="cell-dim">${esc(c.dependency)}</td>
-      <td data-l="CVSS">${cvssCell(c.cvss_score)}</td>
-      <td data-l="Severity">${sevBadge(c.severity)}</td>
-      <td data-l="Status" class="st-${esc(c.status.toLowerCase())}">${esc(c.status)}</td>
+      <td data-l="${dl('CVE')}" class="cell-strong cell-mono">${esc(c.cve_id)}</td>
+      <td data-l="${dl('Component')}" class="cell-dim">${esc(c.dependency)}</td>
+      <td data-l="${dl('CVSS')}">${cvssCell(c.cvss_score)}</td>
+      <td data-l="${dl('Severity')}">${sevBadge(c.severity)}</td>
+      <td data-l="${dl('Status')}" class="st-${esc(c.status.toLowerCase())}">${esc(c.status)}</td>
       <td>${c.status!=='Fixed'?`<button class="icon-btn" aria-label="Mark fixed" title="Mark fixed" onclick="setCveStatus(${c.id},'Fixed')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`:''}</td></tr>`).join('');
   }catch(e){toast(e.message,'err');}
 }
@@ -1309,14 +1332,14 @@ async function loadNotifications(){
     const data=await api('/notifications');
     const active=data.notifications.filter(n=>!n.archived);
     const archived=data.notifications.filter(n=>n.archived);
-    document.getElementById('notif-count').textContent=active.length+' active';
+    document.getElementById('notif-count').textContent=active.length+(isHe()?' פעילות':' active');
     updateBadges(active.filter(n=>!n.is_read).length);
     if(!active.length)emptyRow(body,5,'All quiet','No active alerts right now.');
     else body.innerHTML=active.map(n=>`<tr style="${n.is_read?'opacity:.55':''}">
-      <td data-l="Message">${esc(n.message)}</td>
-      <td data-l="Type">${typeBadge(n.type)}</td>
-      <td data-l="Status" class="cell-dim">${n.is_read?'Read':'<b style="color:var(--accent)">Unread</b>'}</td>
-      <td data-l="Time" class="cell-dim">${fmtDate(n.created_at)}</td>
+      <td data-l="${dl('Message')}">${esc(n.message)}</td>
+      <td data-l="${dl('Type')}">${typeBadge(n.type)}</td>
+      <td data-l="${dl('Status')}" class="cell-dim">${n.is_read?'Read':'<b style="color:var(--accent)">Unread</b>'}</td>
+      <td data-l="${dl('Time')}" class="cell-dim">${fmtDate(n.created_at)}</td>
       <td><div class="inline-actions">
         <button class="icon-btn" title="Approve as accepted risk" aria-label="Approve" onclick="approveAlert(${n.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         ${!n.is_read?`<button class="icon-btn" aria-label="Mark read" onclick="markRead(${n.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`:''}
@@ -1324,11 +1347,11 @@ async function loadNotifications(){
       </div></td></tr>`).join('');
     if(!archived.length)emptyRow(arch,6,'Archive is empty','Approved alerts will appear here with full audit details.');
     else arch.innerHTML=archived.map(n=>`<tr>
-      <td data-l="Alert">${esc(n.message)}</td>
-      <td data-l="Approved by" class="cell-strong">${esc(n.ack_by)}</td>
-      <td data-l="Justification" class="cell-dim">${esc(n.ack_note)}</td>
-      <td data-l="Approved at" class="cell-dim">${n.ack_at?fmtDate(n.ack_at):'—'}</td>
-      <td data-l="State">${n.reopened_at?`<span class="badge sev-high">REOPENED ${fmtDate(n.reopened_at)}</span>`:'<span class="badge sev-low">ACCEPTED</span>'}</td>
+      <td data-l="${dl('Alert')}">${esc(n.message)}</td>
+      <td data-l="${dl('Approved by')}" class="cell-strong">${esc(n.ack_by)}</td>
+      <td data-l="${dl('Justification')}" class="cell-dim">${esc(n.ack_note)}</td>
+      <td data-l="${dl('Approved at')}" class="cell-dim">${n.ack_at?fmtDate(n.ack_at):'—'}</td>
+      <td data-l="${dl('State')}">${n.reopened_at?`<span class="badge sev-high">REOPENED ${fmtDate(n.reopened_at)}</span>`:'<span class="badge sev-low">ACCEPTED</span>'}</td>
       <td>${!n.reopened_at?`<button class="icon-btn" title="Reopen alert" aria-label="Reopen" onclick="reopenAlert(${n.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 1 3 6.7L3 16M3 21v-5h5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`:''}</td></tr>`).join('');
   }catch(e){toast(e.message,'err');emptyRow(body,5,'Could not load','Something went wrong.');}
 }
@@ -1361,10 +1384,10 @@ async function loadPolicies(){
     const data=await api('/policies');
     if(!data.policies.length)return emptyRow(body,5,'No policies','Create an enforcement rule above.');
     body.innerHTML=data.policies.map(p=>`<tr>
-      <td data-l="Policy" class="cell-strong">${esc(p.name)}</td>
-      <td data-l="Threshold">${sevBadge(p.severity_threshold)}</td>
-      <td data-l="Remediation" class="cell-dim">${p.auto_remediation?'Auto':'Manual'}</td>
-      <td data-l="State">${p.is_active?'<b style="color:var(--low)">Active</b>':'<span class="cell-dim">Disabled</span>'}</td>
+      <td data-l="${dl('Policy')}" class="cell-strong">${esc(p.name)}</td>
+      <td data-l="${dl('Threshold')}">${sevBadge(p.severity_threshold)}</td>
+      <td data-l="${dl('Remediation')}" class="cell-dim">${p.auto_remediation?'Auto':'Manual'}</td>
+      <td data-l="${dl('State')}">${p.is_active?'<b style="color:var(--low)">Active</b>':'<span class="cell-dim">Disabled</span>'}</td>
       <td><div class="inline-actions"><button class="icon-btn" aria-label="${p.is_active?'Disable':'Enable'}" onclick="togglePolicy(${p.id},${p.is_active?'false':'true'})">${p.is_active?'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>':'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4l14 8-14 8z" stroke-linejoin="round"/></svg>'}</button><button class="icon-btn danger" aria-label="Delete" onclick="deletePolicy(${p.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg></button></div></td></tr>`).join('');
   }catch(e){toast(e.message,'err');emptyRow(body,5,'Could not load','Something went wrong.');}
 }
@@ -1385,7 +1408,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 
 function loadSupply(){
   const sb=document.getElementById('sup-rows'),cb=document.getElementById('comp-rows');
-  document.getElementById('sup-count').textContent=DB.suppliers.length+' suppliers';
+  document.getElementById('sup-count').textContent=DB.suppliers.length+(isHe()?' ספקים':' suppliers');
   // engagement coverage bar
   const wrap=document.getElementById('eng-wrap');
   if(DB.suppliers.length){
@@ -1402,21 +1425,21 @@ function loadSupply(){
        <span><i style="background:var(--high)"></i>No escrow <b>${ne}</b></span>
        <span><i style="background:var(--muted)"></i>Unknown <b>${u}</b></span>`;
   }else wrap.style.display='none';
-  if(!DB.suppliers.length)emptyRow(sb,6,'No suppliers yet','Add manually or import a file (name, engagement, domain).');
+  if(!DB.suppliers.length)emptyRow(sb,6,isHe()?'אין ספקים עדיין':'No suppliers yet',isHe()?'הוסף ידנית או ייבא קובץ (שם, התקשרות, דומיין).':'Add manually or import a file (name, engagement, domain).');
   else sb.innerHTML=DB.suppliers.map(s=>`<tr class="clickable" onclick="openSupplier(${s.id})">
-    <td data-l="Company" class="cell-strong">${esc(s.name)}</td>
-    <td data-l="Domain" class="cell-mono cell-dim">${esc(s.domain||'—')}</td>
-    <td data-l="Engagement"><span class="badge ${s.type==='Escrow'?'sev-low':s.type==='No escrow'?'sev-high':'sev-unassigned'}">${esc(s.type)}</span></td>
-    <td data-l="Breach">${s.breached?`<span class="badge sev-critical">BREACHED</span>`:s.last_checked?'<span class="badge sev-low">CLEAR</span>':'<span class="cell-dim">Not checked</span>'}</td>
-    <td data-l="Checked" class="cell-dim">${s.last_checked?fmtDate(s.last_checked):'—'}</td>
+    <td data-l="${dl('Company')}" class="cell-strong">${esc(s.name)}</td>
+    <td data-l="${dl('Domain')}" class="cell-mono cell-dim">${esc(s.domain||'—')}</td>
+    <td data-l="${dl('Engagement')}"><span class="badge ${s.type==='Escrow'?'sev-low':s.type==='No escrow'?'sev-high':'sev-unassigned'}">${esc(s.type)}</span></td>
+    <td data-l="${dl('Breach')}">${s.breached?`<span class="badge sev-critical">BREACHED</span>`:s.last_checked?'<span class="badge sev-low">CLEAR</span>':'<span class="cell-dim">Not checked</span>'}</td>
+    <td data-l="${dl('Checked')}" class="cell-dim">${s.last_checked?fmtDate(s.last_checked):'—'}</td>
     <td onclick="event.stopPropagation()"><button class="icon-btn danger" aria-label="Delete supplier" onclick="delSupplier(${s.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg></button></td></tr>`).join('');
-  if(!DB.components.length)emptyRow(cb,6,'No components yet','Track firewalls, proxies and other defenses here.');
+  if(!DB.components.length)emptyRow(cb,6,isHe()?'אין רכיבים עדיין':'No components yet',isHe()?'עקוב אחר firewalls, proxies ואמצעי הגנה כאן.':'Track firewalls, proxies and other defenses here.');
   else cb.innerHTML=DB.components.map(c=>`<tr>
-    <td data-l="Component" class="cell-strong">${esc(c.name)}</td>
-    <td data-l="Status">${c.status==='In use'?'<b style="color:var(--low)">In use</b>':'<span class="cell-dim">Not in use</span>'}</td>
-    <td data-l="Version" class="cell-mono cell-dim">${esc(c.version||'unknown')}</td>
-    <td data-l="CVEs" class="cell-mono" style="color:${c.vulns>0?'var(--critical)':'var(--low)'}">${c.vulns??'—'}</td>
-    <td data-l="Scanned" class="cell-dim">${c.last_scan?fmtDate(c.last_scan):'—'}</td>
+    <td data-l="${dl('Component')}" class="cell-strong">${esc(c.name)}</td>
+    <td data-l="${dl('Status')}">${c.status==='In use'?'<b style="color:var(--low)">In use</b>':'<span class="cell-dim">Not in use</span>'}</td>
+    <td data-l="${dl('Version')}" class="cell-mono cell-dim">${esc(c.version||'unknown')}</td>
+    <td data-l="${dl('CVEs')}" class="cell-mono" style="color:${c.vulns>0?'var(--critical)':'var(--low)'}">${c.vulns??'—'}</td>
+    <td data-l="${dl('Scanned')}" class="cell-dim">${c.last_scan?fmtDate(c.last_scan):'—'}</td>
     <td><button class="icon-btn danger" aria-label="Delete component" onclick="delComponent(${c.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg></button></td></tr>`).join('');
 }
 function addSupplier(){
@@ -1623,9 +1646,9 @@ function renderSupplier(){
   // leak findings
   const lk=document.getElementById('sd-leaks');
   if(s.breached){
-    lk.innerHTML=`<tr><td data-l="Breach" class="cell-strong">${esc(s.breach_title||'Documented breach')}</td>
-      <td data-l="Date" class="cell-mono">${esc(s.breach_date||'—')}</td>
-      <td data-l="Data" class="cell-dim">${esc(s.breach_data||'See HIBP for exposed data classes')}</td></tr>`;
+    lk.innerHTML=`<tr><td data-l="${dl('Breach')}" class="cell-strong">${esc(s.breach_title||'Documented breach')}</td>
+      <td data-l="${dl('Date')}" class="cell-mono">${esc(s.breach_date||'—')}</td>
+      <td data-l="${dl('Data')}" class="cell-dim">${esc(s.breach_data||'See HIBP for exposed data classes')}</td></tr>`;
   }else emptyRow(lk,3,s.last_checked?'No leaks found':'Not checked',
     s.last_checked?'This domain is clean in the free catalog.':'Run a check to populate findings.');
   // history
@@ -1633,9 +1656,9 @@ function renderSupplier(){
   const hb=document.getElementById('sd-history');
   if(!hist.length)emptyRow(hb,3,'No checks yet','Manual or automatic checks will be logged here.');
   else hb.innerHTML=hist.map(h=>`<tr>
-    <td data-l="When" class="cell-mono cell-dim">${fmtDate(h.at)}</td>
-    <td data-l="Source" class="cell-dim">${esc(h.source)}</td>
-    <td data-l="Result">${h.hit?'<span class="badge sev-critical">BREACH</span>':'<span class="badge sev-low">CLEAR</span>'}</td></tr>`).join('');
+    <td data-l="${dl('When')}" class="cell-mono cell-dim">${fmtDate(h.at)}</td>
+    <td data-l="${dl('Source')}" class="cell-dim">${esc(h.source)}</td>
+    <td data-l="${dl('Result')}">${h.hit?'<span class="badge sev-critical">BREACH</span>':'<span class="badge sev-low">CLEAR</span>'}</td></tr>`).join('');
   // auto button label
   document.getElementById('sd-auto').textContent=supplierAutoTimer?'↻ Auto: on (5m)':'↻ Auto: off';
 }
@@ -1701,6 +1724,7 @@ const T={
  b_import:['⇪ Import file','⇪ ייבוא קובץ'],b_breach:['⛨ Check breaches','⛨ בדיקת פריצות'],
  b_nvd:['⌕ Scan CVEs (NVD)','⌕ סריקת CVE (NVD)'],
  back_sup:['Back to supply chain','חזרה לשרשרת אספקה'],e_supd:['Supplier','ספק'],
+ b_breach:['⛨ Check breaches','⛨ בדיקת פריצות'],
  b_recheck:['Re-check now','בדוק שוב'],p_leak:['Leak findings','ממצאי דליפה'],
  p_hist:['Check history','היסטוריית בדיקות'],p_hist_m:['audit log of scans','יומן בדיקות'],
  th_breach:['Breach','פריצה'],th_bdate:['Breach date','תאריך פריצה'],th_data:['Exposed data','דאטה שדלפה'],
@@ -1721,7 +1745,13 @@ function applyLang(l){
   document.querySelectorAll('[data-t]').forEach(el=>{const k=el.dataset.t;if(T[k])setTxt(el,T[k][i]);});
   const lb=document.getElementById('lang-btn');if(lb)lb.textContent=(l==='he')?'EN':'עב';
 }
-function toggleLang(){applyLang((localStorage.getItem('vt_lang')||'en')==='he'?'en':'he');}
+function toggleLang(){applyLang((localStorage.getItem('vt_lang')||'en')==='he'?'en':'he');
+  // re-render whatever view is active so dynamic labels switch language
+  const act=document.querySelector('.view.active');
+  if(act){const id=act.id.replace('view-','');
+    if(id==='dashboard')loadDashboard();else if(id==='projects')loadProjects();
+    else if(id==='supply')loadSupply();else if(id==='notifications')loadNotifications();
+    else if(id==='policies')loadPolicies();else if(id==='supplier-detail')renderSupplier();}}
 
 /* ============================================================
    Boot
