@@ -43,6 +43,25 @@
   --sh-glow:0 0 40px rgba(56,232,255,.18);
   --nav-h:66px;
 }
+html[data-theme="light"]{
+  --bg:#eef2f8; --bg-2:#e2e9f3; --panel:#ffffff; --panel-2:#f4f7fb; --panel-3:#e9eff8;
+  --line:#d6dfeb; --line-soft:#dde5ef66; --text:#15202e; --text-2:#43536a; --muted:#7d8ba2;
+  --accent:#0894b3; --accent-deep:#066d85;
+  --critical:#df2350; --high:#dd6f12; --medium:#bb9105; --low:#0e9d68; --info:#2e6fd8;
+  --sh-1:0 1px 2px rgba(20,35,60,.08); --sh-2:0 10px 26px rgba(20,35,60,.14);
+  --sh-glow:0 0 36px rgba(8,148,179,.14);
+}
+html[data-theme="light"] body::before{
+  background:radial-gradient(1100px 600px at 78% -8%,rgba(8,148,179,.07),transparent 60%),
+  radial-gradient(900px 500px at -5% 110%,rgba(46,111,216,.05),transparent 55%),var(--bg)}
+html[data-theme="light"] .btn-primary{color:#fff}
+html[data-theme="light"] .avatar{color:#fff}
+html[dir="rtl"] th,html[dir="rtl"] td{text-align:right}
+html[dir="rtl"] .nav-item{text-align:right}
+html[dir="rtl"] .nav-item.active::before{left:auto;right:0}
+html[dir="rtl"] .sidebar{border-right:none;border-left:1px solid var(--line)}
+html[dir="rtl"] .stat::before{left:auto;right:0}
+html[dir="rtl"] .pb-val{text-align:left}
 *{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 html,body{height:100%}
@@ -493,9 +512,12 @@ tbody tr.clickable:hover{background:var(--panel-2)}
     </svg>
     <span class="brand-name" style="font-size:16px">Vuln<b>Track</b></span>
   </div>
-  <button class="icon-btn" aria-label="Sign out" title="Sign out" onclick="logout()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke-linecap="round" stroke-linejoin="round"/></svg>
-  </button>
+  <div style="display:flex;gap:8px">
+    <button class="icon-btn" aria-label="Toggle theme" onclick="toggleTheme()">◐</button>
+    <button class="icon-btn" aria-label="Sign out" title="Sign out" onclick="logout()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
 </header>
 
 <div class="shell">
@@ -508,20 +530,20 @@ tbody tr.clickable:hover{background:var(--panel-2)}
       <span class="brand-name">Vuln<b>Track</b></span>
     </div>
     <div class="nav-section">Monitor</div>
-    <button class="nav-item active" data-nav="dashboard" onclick="go('dashboard')">
+    <button class="nav-item active" data-nav="dashboard" data-t="nav_dash" onclick="go('dashboard')">
       <svg class="nv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
       Dashboard</button>
-    <button class="nav-item" data-nav="projects" onclick="go('projects')">
+    <button class="nav-item" data-nav="projects" data-t="nav_proj" onclick="go('projects')">
       <svg class="nv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke-linejoin="round"/></svg>
       Projects</button>
-    <button class="nav-item" data-nav="supply" onclick="go('supply')">
+    <button class="nav-item" data-nav="supply" data-t="nav_sup" onclick="go('supply')">
       <svg class="nv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Supply Chain</button>
     <div class="nav-section">Respond</div>
-    <button class="nav-item" data-nav="notifications" onclick="go('notifications')">
+    <button class="nav-item" data-nav="notifications" data-t="nav_al" onclick="go('notifications')">
       <svg class="nv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Alerts <span class="nav-badge" id="side-badge" style="display:none">0</span></button>
-    <button class="nav-item" data-nav="policies" onclick="go('policies')">
+    <button class="nav-item" data-nav="policies" data-t="nav_pol" onclick="go('policies')">
       <svg class="nv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z" stroke-linejoin="round"/></svg>
       Policies</button>
     <div class="sidebar-footer">
@@ -532,7 +554,11 @@ tbody tr.clickable:hover{background:var(--panel-2)}
           <div class="u-role">Security owner</div>
         </div>
       </div>
-      <button class="btn btn-ghost" style="width:100%" onclick="logout()">Sign out</button>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <button class="btn btn-ghost" style="flex:1" onclick="toggleTheme()" id="theme-btn" aria-label="Toggle theme">◐</button>
+        <button class="btn btn-ghost" style="flex:1" onclick="toggleLang()" id="lang-btn" aria-label="Switch language">עב</button>
+      </div>
+      <button class="btn btn-ghost" style="width:100%" onclick="logout()" data-t="signout">Sign out</button>
     </div>
   </aside>
 
@@ -542,13 +568,13 @@ tbody tr.clickable:hover{background:var(--panel-2)}
     <section class="view active" id="view-dashboard">
       <div class="page-head">
         <div>
-          <div class="eyebrow">Live posture</div>
-          <h1 class="page-title">Security Dashboard</h1>
+          <div class="eyebrow" data-t="e_dash">Live posture</div>
+          <h1 class="page-title" data-t="t_dash">Security Dashboard</h1>
           <div class="page-sub" id="dash-stamp">Syncing…</div>
         </div>
         <button class="btn btn-ghost" onclick="loadDashboard()">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Refresh</button>
+          <span data-t="b_refresh">Refresh</span></button>
       </div>
 
       <!-- HERO: exposure gauge -->
@@ -597,25 +623,34 @@ tbody tr.clickable:hover{background:var(--panel-2)}
           <tbody id="dash-cves"></tbody>
         </table></div>
       </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title" data-t="p_sources">Data sources</span>
+          <span class="panel-meta" data-t="p_sources_m">provenance & freshness</span></div>
+        <div class="table-wrap cardify"><table>
+          <thead><tr><th data-t="th_src">Source</th><th data-t="th_powers">Powers</th><th data-t="th_upd">Last updated</th></tr></thead>
+          <tbody id="src-rows"></tbody>
+        </table></div>
+      </div>
     </section>
 
     <!-- ===== PROJECTS ===== -->
     <section class="view" id="view-projects">
       <div class="page-head">
-        <div><div class="eyebrow">Inventory</div>
-        <h1 class="page-title">Projects</h1>
-        <div class="page-sub">Track components and exposure per project.</div></div>
+        <div><div class="eyebrow" data-t="e_proj">Inventory</div>
+        <h1 class="page-title" data-t="t_proj">Projects</h1>
+        <div class="page-sub" data-t="s_proj">Track components and exposure per project.</div></div>
       </div>
       <div class="panel">
-        <div class="panel-head"><span class="panel-title">New project</span></div>
+        <div class="panel-head"><span class="panel-title" data-t="p_np">New project</span></div>
         <div class="form-row">
           <input id="np-name" placeholder="Project name" maxlength="120">
           <input id="np-ver" placeholder="Version (1.0.0)" maxlength="40" style="max-width:160px">
-          <button class="btn btn-primary" id="np-btn" onclick="createProject()">＋ Create</button>
+          <button class="btn btn-primary" id="np-btn" data-t="b_create" onclick="createProject()">＋ Create</button>
         </div>
       </div>
       <div class="panel">
-        <div class="panel-head"><span class="panel-title">All projects</span>
+        <div class="panel-head"><span class="panel-title" data-t="p_all">All projects</span>
           <span class="panel-meta" id="proj-count"></span></div>
         <div class="table-wrap cardify"><table>
           <thead><tr><th>Name</th><th>Version</th><th>Deps</th><th>CVEs</th><th>Created</th><th></th></tr></thead>
@@ -628,29 +663,29 @@ tbody tr.clickable:hover{background:var(--panel-2)}
     <section class="view" id="view-project-detail">
       <button class="back-link" onclick="go('projects')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Back to projects</button>
+        <span data-t="back">Back to projects</span></button>
       <div class="page-head">
-        <div><div class="eyebrow">Project detail</div>
+        <div><div class="eyebrow" data-t="e_pd">Project detail</div>
         <h1 class="page-title" id="pd-title">Project</h1>
         <div class="page-sub" id="pd-sub"></div></div>
       </div>
       <div class="panel">
-        <div class="panel-head"><span class="panel-title">Add dependency</span></div>
+        <div class="panel-head"><span class="panel-title" data-t="p_adddep">Add dependency</span></div>
         <div class="form-row">
           <input id="nd-name" placeholder="Library name (e.g. lodash)">
           <input id="nd-ver" placeholder="Version" style="max-width:150px">
-          <button class="btn btn-primary" onclick="addDependency()">＋ Add</button>
+          <button class="btn btn-primary" onclick="addDependency()" data-t="b_add">＋ Add</button>
         </div>
       </div>
       <div class="panel">
-        <div class="panel-head"><span class="panel-title">Dependencies</span></div>
+        <div class="panel-head"><span class="panel-title" data-t="p_deps">Dependencies</span></div>
         <div class="table-wrap cardify"><table>
           <thead><tr><th>Library</th><th>Version</th><th>CVEs</th><th></th></tr></thead>
           <tbody id="pd-deps"></tbody>
         </table></div>
       </div>
       <div class="panel">
-        <div class="panel-head"><span class="panel-title">Vulnerabilities</span></div>
+        <div class="panel-head"><span class="panel-title" data-t="p_vulns">Vulnerabilities</span></div>
         <div class="table-wrap cardify"><table>
           <thead><tr><th>CVE</th><th>Component</th><th>CVSS</th><th>Severity</th><th>Status</th><th></th></tr></thead>
           <tbody id="pd-cves"></tbody>
@@ -661,16 +696,16 @@ tbody tr.clickable:hover{background:var(--panel-2)}
     <!-- ===== SUPPLY CHAIN ===== -->
     <section class="view" id="view-supply">
       <div class="page-head">
-        <div><div class="eyebrow">Third parties</div>
-        <h1 class="page-title">Supply Chain</h1>
-        <div class="page-sub">Suppliers you work with, matched against the official HIBP breach catalog. Email alerts run on the backend deployment.</div></div>
+        <div><div class="eyebrow" data-t="e_sup">Third parties</div>
+        <h1 class="page-title" data-t="t_sup">Supply Chain</h1>
+        <div class="page-sub" data-t="s_sup">Suppliers you work with, matched against the official HIBP breach catalog. Email alerts run on the backend deployment.</div></div>
       </div>
 
       <div class="panel">
-        <div class="panel-head"><span class="panel-title">Add supplier</span>
+        <div class="panel-head"><span class="panel-title" data-t="p_addsup">Add supplier</span>
           <div class="inline-actions">
             <input type="file" id="sup-file" accept=".csv,.txt,.cab" style="display:none" onchange="importSuppliers(this.files[0])">
-            <button class="btn btn-ghost" onclick="document.getElementById('sup-file').click()">⇪ Import file</button>
+            <button class="btn btn-ghost" data-t="b_import" onclick="document.getElementById('sup-file').click()">⇪ Import file</button>
             <button class="btn btn-primary" id="breach-btn" onclick="checkBreaches()">⛨ Check breaches</button>
           </div></div>
         <div class="form-row">
@@ -679,12 +714,12 @@ tbody tr.clickable:hover{background:var(--panel-2)}
           <select id="sup-type" style="max-width:190px" aria-label="Engagement type">
             <option>Unknown</option><option>Escrow</option><option>No escrow</option>
           </select>
-          <button class="btn btn-primary" onclick="addSupplier()">＋ Add</button>
+          <button class="btn btn-primary" onclick="addSupplier()" data-t="b_add">＋ Add</button>
         </div>
       </div>
 
       <div class="panel">
-        <div class="panel-head"><span class="panel-title">Suppliers</span>
+        <div class="panel-head"><span class="panel-title" data-t="p_sups">Suppliers</span>
           <span class="panel-meta" id="sup-count"></span></div>
         <div class="eng-wrap" id="eng-wrap" style="display:none">
           <div class="eng-bar" id="eng-bar"></div>
@@ -697,7 +732,7 @@ tbody tr.clickable:hover{background:var(--panel-2)}
       </div>
 
       <div class="panel">
-        <div class="panel-head"><span class="panel-title">Security components</span>
+        <div class="panel-head"><span class="panel-title" data-t="p_comp">Security components</span>
           <button class="btn btn-ghost" id="nvd-btn" onclick="scanComponents()">⌕ Scan CVEs (NVD)</button></div>
         <div class="form-row">
           <input id="comp-name" placeholder="Component (e.g. pfSense, Squid proxy)" maxlength="120">
@@ -705,7 +740,7 @@ tbody tr.clickable:hover{background:var(--panel-2)}
           <select id="comp-status" style="max-width:160px" aria-label="In use?">
             <option>In use</option><option>Not in use</option>
           </select>
-          <button class="btn btn-primary" onclick="addComponent()">＋ Add</button>
+          <button class="btn btn-primary" onclick="addComponent()" data-t="b_add">＋ Add</button>
         </div>
         <div class="table-wrap cardify"><table>
           <thead><tr><th>Component</th><th>Status</th><th>Version</th><th>CVE matches</th><th>Scanned</th><th></th></tr></thead>
@@ -717,12 +752,12 @@ tbody tr.clickable:hover{background:var(--panel-2)}
     <!-- ===== NOTIFICATIONS ===== -->
     <section class="view" id="view-notifications">
       <div class="page-head">
-        <div><div class="eyebrow">Activity</div>
-        <h1 class="page-title">Alerts</h1>
-        <div class="page-sub">System events and security notifications.</div></div>
+        <div><div class="eyebrow" data-t="e_al">Activity</div>
+        <h1 class="page-title" data-t="t_al">Alerts</h1>
+        <div class="page-sub" data-t="s_al">System events and security notifications.</div></div>
       </div>
       <div class="panel">
-        <div class="panel-head"><span class="panel-title">Active alerts</span>
+        <div class="panel-head"><span class="panel-title" data-t="p_active">Active alerts</span>
           <span class="panel-meta" id="notif-count"></span></div>
         <div class="table-wrap cardify"><table>
           <thead><tr><th>Message</th><th>Type</th><th>Status</th><th>Time</th><th></th></tr></thead>
@@ -743,12 +778,12 @@ tbody tr.clickable:hover{background:var(--panel-2)}
     <!-- ===== POLICIES ===== -->
     <section class="view" id="view-policies">
       <div class="page-head">
-        <div><div class="eyebrow">Governance</div>
-        <h1 class="page-title">Security Policies</h1>
-        <div class="page-sub">Enforcement rules applied across scans.</div></div>
+        <div><div class="eyebrow" data-t="e_pol">Governance</div>
+        <h1 class="page-title" data-t="t_pol">Security Policies</h1>
+        <div class="page-sub" data-t="s_pol">Enforcement rules applied across scans.</div></div>
       </div>
       <div class="panel">
-        <div class="panel-head"><span class="panel-title">New policy</span></div>
+        <div class="panel-head"><span class="panel-title" data-t="p_newpol">New policy</span></div>
         <div class="form-row">
           <input id="pol-name" placeholder="Policy name">
           <select id="pol-thresh" style="max-width:180px" aria-label="Severity threshold">
@@ -758,7 +793,7 @@ tbody tr.clickable:hover{background:var(--panel-2)}
             <option value="false">Manual remediation</option>
             <option value="true">Auto remediation</option>
           </select>
-          <button class="btn btn-primary" onclick="createPolicy()">＋ Create</button>
+          <button class="btn btn-primary" onclick="createPolicy()" data-t="b_create">＋ Create</button>
         </div>
       </div>
       <div class="panel">
@@ -781,25 +816,29 @@ tbody tr.clickable:hover{background:var(--panel-2)}
     </svg>
     <span class="brand-name">Vuln<b>Track</b></span>
   </div>
-  <button class="nav-item" data-nav="dashboard" onclick="go('dashboard')">▣&nbsp; Dashboard</button>
-  <button class="nav-item" data-nav="projects" onclick="go('projects')">⛁&nbsp; Projects</button>
-  <button class="nav-item" data-nav="supply" onclick="go('supply')">⛓&nbsp; Supply Chain</button>
-  <button class="nav-item" data-nav="notifications" onclick="go('notifications')">◉&nbsp; Alerts</button>
-  <button class="nav-item" data-nav="policies" onclick="go('policies')">⛨&nbsp; Policies</button>
+  <button class="nav-item" data-nav="dashboard" data-t="nav_dash" onclick="go('dashboard')">▣&nbsp; Dashboard</button>
+  <button class="nav-item" data-nav="projects" data-t="nav_proj" onclick="go('projects')">⛁&nbsp; Projects</button>
+  <button class="nav-item" data-nav="supply" data-t="nav_sup" onclick="go('supply')">⛓&nbsp; Supply Chain</button>
+  <button class="nav-item" data-nav="notifications" data-t="nav_al" onclick="go('notifications')">◉&nbsp; Alerts</button>
+  <button class="nav-item" data-nav="policies" data-t="nav_pol" onclick="go('policies')">⛨&nbsp; Policies</button>
   <div class="drawer-footer">
-    <button class="btn btn-ghost" style="width:100%" onclick="logout()">Sign out</button>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="toggleTheme()">◐</button>
+      <button class="btn btn-ghost" style="flex:1" onclick="toggleLang()">עב / EN</button>
+    </div>
+    <button class="btn btn-ghost" style="width:100%" onclick="logout()" data-t="signout">Sign out</button>
   </div>
 </aside>
 <nav class="bottom-nav" aria-label="Main navigation">
-  <button class="bn-item active" data-nav="dashboard" onclick="go('dashboard')" aria-label="Dashboard">
+  <button class="bn-item active" data-nav="dashboard" data-t="bn_dash" onclick="go('dashboard')" aria-label="Dashboard">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dash</button>
-  <button class="bn-item" data-nav="projects" onclick="go('projects')" aria-label="Projects">
+  <button class="bn-item" data-nav="projects" data-t="bn_proj" onclick="go('projects')" aria-label="Projects">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke-linejoin="round"/></svg>Projects</button>
-  <button class="bn-item" data-nav="supply" onclick="go('supply')" aria-label="Supply chain">
+  <button class="bn-item" data-nav="supply" data-t="bn_sup" onclick="go('supply')" aria-label="Supply chain">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Supply</button>
-  <button class="bn-item" data-nav="notifications" onclick="go('notifications')" aria-label="Alerts">
+  <button class="bn-item" data-nav="notifications" data-t="bn_al" onclick="go('notifications')" aria-label="Alerts">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" stroke-linecap="round" stroke-linejoin="round"/></svg>Alerts<span class="bn-dot" id="bn-dot" style="display:none"></span></button>
-  <button class="bn-item" data-nav="policies" onclick="go('policies')" aria-label="Policies">
+  <button class="bn-item" data-nav="policies" data-t="bn_pol" onclick="go('policies')" aria-label="Policies">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z" stroke-linejoin="round"/></svg>Policies</button>
 </nav>
 </div>
@@ -811,7 +850,7 @@ tbody tr.clickable:hover{background:var(--panel-2)}
    ============================================================ */
 const DB_KEY='vt_db_v2';
 function loadDB(){try{const r=localStorage.getItem(DB_KEY);if(r)return JSON.parse(r);}catch(e){}return null;}
-function saveDB(db){localStorage.setItem(DB_KEY,JSON.stringify(db));}
+function saveDB(db){db.meta=db.meta||{};db.meta.modified=new Date().toISOString();localStorage.setItem(DB_KEY,JSON.stringify(db));}
 function freshDB(){const t=new Date().toISOString();return{
   seq:100,
   projects:[
@@ -1113,6 +1152,14 @@ async function loadDashboard(){
       <td data-l="CVSS">${cvssCell(c.cvss_score)}</td>
       <td data-l="Severity">${sevBadge(c.severity)}</td>
       <td data-l="Status" class="st-${esc(c.status.toLowerCase())}">${esc(c.status)}</td></tr>`).join('');
+    // ---- data sources ----
+    const meta=DB.meta||{};
+    const fS=v=>v?fmtDate(v):'\u2014';
+    const sr=document.getElementById('src-rows');
+    if(sr)sr.innerHTML=`
+      <tr><td data-l="Source" class="cell-strong">HIBP <span class="cell-dim cell-mono">haveibeenpwned.com</span></td><td data-l="Powers" class="cell-dim">Supply-chain breach status</td><td data-l="Updated" class="cell-mono">${fS(meta.hibp)}</td></tr>
+      <tr><td data-l="Source" class="cell-strong">NVD / NIST <span class="cell-dim cell-mono">services.nvd.nist.gov</span></td><td data-l="Powers" class="cell-dim">Component CVE matches</td><td data-l="Updated" class="cell-mono">${fS(meta.nvd)}</td></tr>
+      <tr><td data-l="Source" class="cell-strong">Local workspace <span class="cell-dim cell-mono">this browser</span></td><td data-l="Powers" class="cell-dim">Projects, suppliers, alerts</td><td data-l="Updated" class="cell-mono">${fS(meta.modified)}</td></tr>`;
   }catch(e){toast(e.message,'err');}
 }
 
@@ -1346,6 +1393,7 @@ async function checkBreaches(){
     const res=await fetch('https://haveibeenpwned.com/api/v3/breaches');
     if(!res.ok)throw new Error('HIBP catalog unavailable ('+res.status+')');
     const breaches=await res.json();
+    DB.meta=DB.meta||{};DB.meta.hibp=nowISO();
     const byDomain={};breaches.forEach(b=>{if(b.Domain)byDomain[b.Domain.toLowerCase()]=b;});
     let hits=0;
     targets.forEach(s=>{
@@ -1394,14 +1442,62 @@ async function scanComponents(){
       if(i<comps.length-1)await sleep(7000);
     }
     const st=await api('/stats');updateBadges(st.unread_notifications);
+    DB.meta=DB.meta||{};DB.meta.nvd=nowISO();saveDB(DB);
     toast('Component scan finished — results in the table, alerts for any matches.','ok');
   }finally{btn.disabled=false;btn.textContent='⌕ Scan CVEs (NVD)';}
 }
 
 /* ============================================================
+   Theme + Language
+   ============================================================ */
+function applyTheme(t){document.documentElement.dataset.theme=t;localStorage.setItem('vt_theme',t);}
+function toggleTheme(){applyTheme(document.documentElement.dataset.theme==='light'?'dark':'light');}
+
+const T={
+ nav_dash:['Dashboard','לוח ראשי'],nav_proj:['Projects','פרויקטים'],nav_sup:['Supply Chain','שרשרת אספקה'],
+ nav_al:['Alerts','התראות'],nav_pol:['Policies','מדיניות'],signout:['Sign out','התנתקות'],
+ bn_dash:['Dash','ראשי'],bn_proj:['Projects','פרויקטים'],bn_sup:['Supply','אספקה'],bn_al:['Alerts','התראות'],bn_pol:['Policies','מדיניות'],
+ t_dash:['Security Dashboard','לוח אבטחה'],e_dash:['Live posture','מצב חי'],
+ t_proj:['Projects','פרויקטים'],e_proj:['Inventory','מלאי'],s_proj:['Track components and exposure per project.','מעקב רכיבים וחשיפה לכל פרויקט.'],
+ t_sup:['Supply Chain','שרשרת אספקה'],e_sup:['Third parties','צד שלישי'],
+ s_sup:['Suppliers you work with, matched against the official HIBP breach catalog. Email alerts run on the backend deployment.','ספקים שאתה עובד איתם, מוצלבים מול קטלוג הפריצות הרשמי של HIBP. התראות מייל רצות ב-Backend.'],
+ t_al:['Alerts','התראות'],e_al:['Activity','פעילות'],s_al:['System events and security notifications.','אירועי מערכת והתראות אבטחה.'],
+ t_pol:['Security Policies','מדיניות אבטחה'],e_pol:['Governance','משילות'],s_pol:['Enforcement rules applied across scans.','כללי אכיפה החלים על הסריקות.'],
+ e_pd:['Project detail','פרטי פרויקט'],back:['Back to projects','חזרה לפרויקטים'],
+ p_np:['New project','פרויקט חדש'],p_all:['All projects','כל הפרויקטים'],p_addsup:['Add supplier','הוספת ספק'],
+ p_sups:['Suppliers','ספקים'],p_comp:['Security components','רכיבי הגנה'],p_active:['Active alerts','התראות פעילות'],
+ p_arch:['Approved archive','ארכיון אישורים'],p_newpol:['New policy','מדיניות חדשה'],
+ p_sev:['Severity distribution','התפלגות חומרה'],p_expo:['Exposure by project','חשיפה לפי פרויקט'],
+ p_top:['Top vulnerabilities','פגיעויות מובילות'],p_adddep:['Add dependency','הוספת תלות (Dependency)'],
+ p_deps:['Dependencies','תלויות'],p_vulns:['Vulnerabilities','פגיעויות'],
+ p_sources:['Data sources','מקורות מידע'],p_sources_m:['provenance & freshness','מקור וטריות הנתונים'],
+ th_src:['Source','מקור'],th_powers:['Powers','מזין את'],th_upd:['Last updated','עודכן לאחרונה'],
+ b_refresh:['Refresh','רענון'],b_create:['＋ Create','＋ צור'],b_add:['＋ Add','＋ הוסף'],
+ b_import:['⇪ Import file','⇪ ייבוא קובץ'],b_breach:['⛨ Check breaches','⛨ בדיקת פריצות'],
+ b_nvd:['⌕ Scan CVEs (NVD)','⌕ סריקת CVE (NVD)'],
+};
+function setTxt(el,txt){
+  for(const n of el.childNodes){if(n.nodeType===3&&n.nodeValue.trim()){n.nodeValue=' '+txt;return;}}
+  el.appendChild(document.createTextNode(txt));
+}
+function applyLang(l){
+  localStorage.setItem('vt_lang',l);
+  document.documentElement.lang=l;
+  document.documentElement.dir=(l==='he')?'rtl':'ltr';
+  const i=(l==='he')?1:0;
+  document.querySelectorAll('[data-t]').forEach(el=>{const k=el.dataset.t;if(T[k])setTxt(el,T[k][i]);});
+  const lb=document.getElementById('lang-btn');if(lb)lb.textContent=(l==='he')?'EN':'עב';
+}
+function toggleLang(){applyLang((localStorage.getItem('vt_lang')||'en')==='he'?'en':'he');}
+
+/* ============================================================
    Boot
    ============================================================ */
-(function(){if(sessionStorage.getItem('vt_open')==='1')enterApp();})();
+(function(){
+  applyTheme(localStorage.getItem('vt_theme')||'dark');
+  applyLang(localStorage.getItem('vt_lang')||'en');
+  if(sessionStorage.getItem('vt_open')==='1')enterApp();
+})();
 </script>
 </body>
 </html>
