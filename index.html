@@ -71,6 +71,17 @@ html[dir="rtl"] .back-link svg{transform:scaleX(-1)}
 html[dir="rtl"] .form-row input,html[dir="rtl"] .form-row select{text-align:right}
 html[dir="rtl"] .eng-legend,html[dir="rtl"] .dist-legend,html[dir="rtl"] .hero-chips{direction:rtl}
 html[dir="rtl"] .panel-meta{direction:rtl}
+/* English text blocks stay LTR inside RTL UI (numbers & periods correct) */
+html[dir="rtl"] .hero-desc,html[dir="rtl"] .hero-verdict,html[dir="rtl"] .gauge-center,
+html[dir="rtl"] .gauge-max,html[dir="rtl"] .chip,html[dir="rtl"] .stat-lbl,
+html[dir="rtl"] .page-sub,html[dir="rtl"] #dash-stamp,html[dir="rtl"] .badge,
+html[dir="rtl"] .cvss,html[dir="rtl"] td .cell-mono,html[dir="rtl"] .pb-name,
+html[dir="rtl"] .empty,html[dir="rtl"] .toast{direction:ltr}
+/* but keep their box alignment correct for RTL layout */
+html[dir="rtl"] .hero-desc,html[dir="rtl"] .hero-verdict{text-align:center}
+html[dir="rtl"] .chip{flex-direction:row}
+/* gauge number block always LTR so "64 /100" reads right */
+html[dir="rtl"] .gauge-center>*{direction:ltr}
 *{margin:0;padding:0;box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 html,body{height:100%}
