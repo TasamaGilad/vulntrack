@@ -63,7 +63,7 @@ html[dir="rtl"] .sidebar{border-right:none;border-left:1px solid var(--line)}
 html[dir="rtl"] .stat::before{left:auto;right:0}
 html[dir="rtl"] .pb-val{text-align:left}
 html[dir="rtl"] input,html[dir="rtl"] select{text-align:right;direction:rtl}
-html[dir="rtl"] input::placeholder{text-align:right}
+html[dir="rtl"] input::placeholder{text-align:right;text-overflow:ellipsis}
 html[dir="rtl"] .cell-mono,html[dir="rtl"] .mono{direction:ltr;unicode-bidi:embed;display:inline-block}
 html[dir="rtl"] .back-link{flex-direction:row-reverse}
 html[dir="rtl"] .back-link svg{transform:scaleX(-1)}
@@ -652,7 +652,7 @@ tbody tr.clickable:hover{background:var(--panel-2)}
 
       <div class="panel">
         <div class="panel-head"><span class="panel-title" data-t="p_sources">Data sources</span>
-          <span class="panel-meta" data-t="p_sources_m">provenance & freshness</span></div>
+          <span class="panel-meta" data-t="p_sources_m">provenance &amp; freshness</span></div>
         <div class="table-wrap cardify"><table>
           <thead><tr><th data-t="th_src">Source</th><th data-t="th_powers">Powers</th><th data-t="th_upd">Last updated</th></tr></thead>
           <tbody id="src-rows"></tbody>
@@ -729,7 +729,7 @@ tbody tr.clickable:hover{background:var(--panel-2)}
 
       <div class="panel">
         <div class="panel-head"><span class="panel-title" data-t="p_emailchk">Email exposure check</span>
-          <span class="panel-meta">XON + HIBP catalog</span></div>
+          <span class="panel-meta" data-t="m_xonhibp">XON + HIBP catalog</span></div>
         <div class="form-row">
           <input id="eml-input" type="email" placeholder="email@example.com" autocomplete="off">
           <button class="btn btn-primary" id="eml-btn" onclick="checkEmail()">⌕ <span data-t="b_emailchk">Check email</span></button>
@@ -739,7 +739,7 @@ tbody tr.clickable:hover{background:var(--panel-2)}
 
       <div class="panel">
         <div class="panel-head"><span class="panel-title" data-t="p_pwchk">Password exposure check</span>
-          <span class="panel-meta">k-anonymity · private</span></div>
+          <span class="panel-meta" data-t="m_kanon">k-anonymity · private</span></div>
         <div class="form-row">
           <input id="pw-input" type="password" placeholder="Password to test" autocomplete="off">
           <button class="btn btn-primary" id="pw-btn" onclick="checkPassword()">⌕ <span data-t="b_pwchk">Check password</span></button>
@@ -821,7 +821,7 @@ tbody tr.clickable:hover{background:var(--panel-2)}
 
       <div class="panel">
         <div class="panel-head"><span class="panel-title" data-t="p_leak">Leak findings</span>
-          <span class="panel-meta" id="sd-source">source: HIBP breach catalog (free)</span></div>
+          <span class="panel-meta" id="sd-source" data-t="m_hibp">source: HIBP breach catalog (free)</span></div>
         <div class="table-wrap cardify"><table>
           <thead><tr><th data-t="th_breach">Breach</th><th data-t="th_bdate">Breach date</th><th data-t="th_data">Exposed data</th></tr></thead>
           <tbody id="sd-leaks"></tbody>
@@ -855,8 +855,8 @@ tbody tr.clickable:hover{background:var(--panel-2)}
       </div>
 
       <div class="panel">
-        <div class="panel-head"><span class="panel-title"><span class="pt-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Approved archive</span>
-          <span class="panel-meta">audit trail — append-only</span></div>
+        <div class="panel-head"><span class="panel-title" data-t="p_arch"><span class="pt-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Approved archive</span>
+          <span class="panel-meta" data-t="m_audit">audit trail — append-only</span></div>
         <div class="table-wrap cardify"><table>
           <thead><tr><th>Original alert</th><th>Approved by</th><th>Justification</th><th>Approved at</th><th>State</th><th></th></tr></thead>
           <tbody id="arch-rows"></tbody>
@@ -1748,6 +1748,10 @@ const T={
  p_hist:['Check history','היסטוריית בדיקות'],p_hist_m:['audit log of scans','יומן בדיקות'],
  th_breach:['Breach','פריצה'],th_bdate:['Breach date','תאריך פריצה'],th_data:['Exposed data','דאטה שדלפה'],
  th_when:['When','מתי'],th_src2:['Source','מקור'],th_result:['Result','תוצאה'],
+ m_audit:['audit trail — append-only','תיעוד ביקורת — ללא מחיקה'],
+ m_hibp:['source: HIBP catalog (free)','מקור: קטלוג HIBP (חינמי)'],
+ m_xonhibp:['XON + HIBP catalog','XON + קטלוג HIBP'],
+ m_kanon:['k-anonymity · private','k-anonymity · פרטי'],
  p_emailchk:['Email exposure check','בדיקת חשיפת מייל'],b_emailchk:['Check email','בדוק מייל'],
  p_pwchk:['Password exposure check','בדיקת חשיפת סיסמה'],b_pwchk:['Check password','בדוק סיסמה'],
  pw_note:['Only the first 5 characters of the password hash are sent — the password never leaves this device.','נשלחים רק 5 התווים הראשונים של ה-hash — הסיסמה עצמה לעולם לא עוזבת את המכשיר.'],
