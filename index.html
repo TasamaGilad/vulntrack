@@ -749,6 +749,48 @@ tbody tr.clickable:hover{background:var(--panel-2)}
       </div>
     </section>
 
+    <!-- ===== SUPPLIER DETAIL ===== -->
+    <section class="view" id="view-supplier-detail">
+      <button class="back-link" onclick="go('supply')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span data-t="back_sup">Back to supply chain</span></button>
+      <div class="page-head">
+        <div><div class="eyebrow" data-t="e_supd">Supplier</div>
+        <h1 class="page-title" id="sd-title">Supplier</h1>
+        <div class="page-sub" id="sd-sub"></div></div>
+        <div class="inline-actions">
+          <button class="btn btn-ghost" id="sd-auto" onclick="toggleSupplierAuto()">↻ Auto: off</button>
+          <button class="btn btn-primary" id="sd-check" onclick="checkOneSupplier()">⛨ <span data-t="b_recheck">Re-check now</span></button>
+        </div>
+      </div>
+
+      <div class="hero" id="sd-hero" style="grid-template-columns:1fr;gap:14px">
+        <div>
+          <div class="hero-verdict" id="sd-verdict">—</div>
+          <p class="hero-desc" id="sd-desc"></p>
+          <div class="hero-chips" id="sd-chips"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title" data-t="p_leak">Leak findings</span>
+          <span class="panel-meta" id="sd-source">source: HIBP breach catalog (free)</span></div>
+        <div class="table-wrap cardify"><table>
+          <thead><tr><th data-t="th_breach">Breach</th><th data-t="th_bdate">Breach date</th><th data-t="th_data">Exposed data</th></tr></thead>
+          <tbody id="sd-leaks"></tbody>
+        </table></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title" data-t="p_hist">Check history</span>
+          <span class="panel-meta" data-t="p_hist_m">audit log of scans</span></div>
+        <div class="table-wrap cardify"><table>
+          <thead><tr><th data-t="th_when">When</th><th data-t="th_src2">Source</th><th data-t="th_result">Result</th></tr></thead>
+          <tbody id="sd-history"></tbody>
+        </table></div>
+      </div>
+    </section>
+
     <!-- ===== NOTIFICATIONS ===== -->
     <section class="view" id="view-notifications">
       <div class="page-head">
@@ -1031,6 +1073,7 @@ function toggleDrawer(open){
 }
 function go(view){
   toggleDrawer(false);
+  if(view!=='supplier-detail'&&supplierAutoTimer){clearInterval(supplierAutoTimer);supplierAutoTimer=null;}
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+view).classList.add('active');
   document.querySelectorAll('[data-nav]').forEach(b=>b.classList.toggle('active',b.dataset.nav===view));
@@ -1337,13 +1380,13 @@ function loadSupply(){
        <span><i style="background:var(--muted)"></i>Unknown <b>${u}</b></span>`;
   }else wrap.style.display='none';
   if(!DB.suppliers.length)emptyRow(sb,6,'No suppliers yet','Add manually or import a file (name, engagement, domain).');
-  else sb.innerHTML=DB.suppliers.map(s=>`<tr>
+  else sb.innerHTML=DB.suppliers.map(s=>`<tr class="clickable" onclick="openSupplier(${s.id})">
     <td data-l="Company" class="cell-strong">${esc(s.name)}</td>
     <td data-l="Domain" class="cell-mono cell-dim">${esc(s.domain||'—')}</td>
     <td data-l="Engagement"><span class="badge ${s.type==='Escrow'?'sev-low':s.type==='No escrow'?'sev-high':'sev-unassigned'}">${esc(s.type)}</span></td>
     <td data-l="Breach">${s.breached?`<span class="badge sev-critical">BREACHED</span>`:s.last_checked?'<span class="badge sev-low">CLEAR</span>':'<span class="cell-dim">Not checked</span>'}</td>
     <td data-l="Checked" class="cell-dim">${s.last_checked?fmtDate(s.last_checked):'—'}</td>
-    <td><button class="icon-btn danger" aria-label="Delete supplier" onclick="delSupplier(${s.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg></button></td></tr>`).join('');
+    <td onclick="event.stopPropagation()"><button class="icon-btn danger" aria-label="Delete supplier" onclick="delSupplier(${s.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg></button></td></tr>`).join('');
   if(!DB.components.length)emptyRow(cb,6,'No components yet','Track firewalls, proxies and other defenses here.');
   else cb.innerHTML=DB.components.map(c=>`<tr>
     <td data-l="Component" class="cell-strong">${esc(c.name)}</td>
@@ -1448,6 +1491,93 @@ async function scanComponents(){
 }
 
 /* ============================================================
+   Supplier detail (history, manual/auto refresh, transparency)
+   ============================================================ */
+let currentSupplierId=null, supplierAutoTimer=null;
+
+function openSupplier(id){
+  currentSupplierId=id;
+  go('supplier-detail');
+  renderSupplier();
+}
+function renderSupplier(){
+  const s=DB.suppliers.find(x=>x.id===currentSupplierId);
+  if(!s)return;
+  document.getElementById('sd-title').textContent=s.name;
+  document.getElementById('sd-sub').textContent=(s.domain||'no domain')+' · '+(s.type||'Unknown');
+  const v=document.getElementById('sd-verdict'),d=document.getElementById('sd-desc'),
+        chips=document.getElementById('sd-chips'),hero=document.getElementById('sd-hero');
+  if(!s.domain){
+    hero.style.borderColor='var(--line)';
+    v.textContent='No domain on file';v.style.color='var(--text)';
+    d.textContent='Add a domain to this supplier to enable breach checks against the HIBP catalog.';
+    chips.innerHTML='';
+  }else if(s.breached){
+    v.textContent='⚠ Found in breach data';v.style.color='var(--critical)';
+    d.textContent=`The domain ${s.domain} matches a documented breach in the HIBP catalog. Review your data exposure and contractual safeguards with this vendor.`;
+    chips.innerHTML=`<span class="chip"><span class="dot" style="background:var(--critical)"></span>Status <b>BREACHED</b></span>`;
+  }else if(s.last_checked){
+    v.textContent='No breach on record';v.style.color='var(--low)';
+    d.textContent=`${s.domain} is not present in the free HIBP breach catalog (≈850 documented org breaches). Note: this does NOT cover leaked credentials FROM this domain — that requires a paid HIBP key on the backend.`;
+    chips.innerHTML=`<span class="chip"><span class="dot" style="background:var(--low)"></span>Status <b>CLEAR</b></span>`;
+  }else{
+    v.textContent='Not checked yet';v.style.color='var(--text)';
+    d.textContent='Run a check to compare this domain against the HIBP breach catalog.';
+    chips.innerHTML='';
+  }
+  // leak findings
+  const lk=document.getElementById('sd-leaks');
+  if(s.breached){
+    lk.innerHTML=`<tr><td data-l="Breach" class="cell-strong">${esc(s.breach_title||'Documented breach')}</td>
+      <td data-l="Date" class="cell-mono">${esc(s.breach_date||'—')}</td>
+      <td data-l="Data" class="cell-dim">${esc(s.breach_data||'See HIBP for exposed data classes')}</td></tr>`;
+  }else emptyRow(lk,3,s.last_checked?'No leaks found':'Not checked',
+    s.last_checked?'This domain is clean in the free catalog.':'Run a check to populate findings.');
+  // history
+  const hist=(s.history||[]).slice().reverse();
+  const hb=document.getElementById('sd-history');
+  if(!hist.length)emptyRow(hb,3,'No checks yet','Manual or automatic checks will be logged here.');
+  else hb.innerHTML=hist.map(h=>`<tr>
+    <td data-l="When" class="cell-mono cell-dim">${fmtDate(h.at)}</td>
+    <td data-l="Source" class="cell-dim">${esc(h.source)}</td>
+    <td data-l="Result">${h.hit?'<span class="badge sev-critical">BREACH</span>':'<span class="badge sev-low">CLEAR</span>'}</td></tr>`).join('');
+  // auto button label
+  document.getElementById('sd-auto').textContent=supplierAutoTimer?'↻ Auto: on (5m)':'↻ Auto: off';
+}
+
+async function checkOneSupplier(){
+  const s=DB.suppliers.find(x=>x.id===currentSupplierId);
+  if(!s)return;
+  if(!s.domain)return toast('Add a domain to this supplier first.','err');
+  const btn=document.getElementById('sd-check');btn.disabled=true;
+  try{
+    const res=await fetch('https://haveibeenpwned.com/api/v3/breaches');
+    if(!res.ok)throw new Error('HIBP catalog unavailable ('+res.status+')');
+    const breaches=await res.json();
+    DB.meta=DB.meta||{};DB.meta.hibp=nowISO();
+    const b=breaches.find(x=>x.Domain&&x.Domain.toLowerCase()===s.domain.toLowerCase());
+    s.last_checked=nowISO();
+    s.history=s.history||[];
+    s.history.push({at:nowISO(),source:'HIBP breach catalog',hit:!!b});
+    if(b){
+      if(!s.breached)notify(`SUPPLY-CHAIN ALERT: ${s.name} (${s.domain}) appears in breach "${b.Title}" dated ${b.BreachDate}.`,'Error');
+      s.breached=true;s.breach_title=b.Title;s.breach_date=b.BreachDate;
+      s.breach_data=(b.DataClasses||[]).join(', ');
+    }
+    saveDB(DB);renderSupplier();
+    toast(b?'⚠ Breach match found — see findings.':'No breach in the free catalog for this domain.',b?'err':'ok');
+  }catch(e){toast(e.message,'err');}
+  finally{btn.disabled=false;}
+}
+
+function toggleSupplierAuto(){
+  if(supplierAutoTimer){clearInterval(supplierAutoTimer);supplierAutoTimer=null;toast('Auto-refresh disabled.','ok');}
+  else{supplierAutoTimer=setInterval(()=>{if(document.getElementById('view-supplier-detail').classList.contains('active'))checkOneSupplier();},300000);
+    toast('Auto-refresh every 5 min (while this page is open).','ok');}
+  renderSupplier();
+}
+
+/* ============================================================
    Theme + Language
    ============================================================ */
 function applyTheme(t){document.documentElement.dataset.theme=t;localStorage.setItem('vt_theme',t);}
@@ -1475,6 +1605,11 @@ const T={
  b_refresh:['Refresh','רענון'],b_create:['＋ Create','＋ צור'],b_add:['＋ Add','＋ הוסף'],
  b_import:['⇪ Import file','⇪ ייבוא קובץ'],b_breach:['⛨ Check breaches','⛨ בדיקת פריצות'],
  b_nvd:['⌕ Scan CVEs (NVD)','⌕ סריקת CVE (NVD)'],
+ back_sup:['Back to supply chain','חזרה לשרשרת אספקה'],e_supd:['Supplier','ספק'],
+ b_recheck:['Re-check now','בדוק שוב'],p_leak:['Leak findings','ממצאי דליפה'],
+ p_hist:['Check history','היסטוריית בדיקות'],p_hist_m:['audit log of scans','יומן בדיקות'],
+ th_breach:['Breach','פריצה'],th_bdate:['Breach date','תאריך פריצה'],th_data:['Exposed data','דאטה שדלפה'],
+ th_when:['When','מתי'],th_src2:['Source','מקור'],th_result:['Result','תוצאה'],
 };
 function setTxt(el,txt){
   for(const n of el.childNodes){if(n.nodeType===3&&n.nodeValue.trim()){n.nodeValue=' '+txt;return;}}
