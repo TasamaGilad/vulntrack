@@ -126,9 +126,36 @@ body::after{
 /* ============================================================
    LOGIN
    ============================================================ */
-#login-view{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px}
+#login-view{min-height:100dvh;display:flex;align-items:stretch;justify-content:center}
+.login-split{display:grid;grid-template-columns:1.05fr .95fr;width:100%;min-height:100dvh}
+.login-aside{position:relative;overflow:hidden;padding:56px 52px;display:flex;flex-direction:column;
+  justify-content:space-between;
+  background:
+    radial-gradient(700px 380px at 20% 15%,rgba(56,232,255,.14),transparent 60%),
+    radial-gradient(600px 400px at 90% 90%,rgba(91,157,255,.10),transparent 55%),
+    linear-gradient(160deg,var(--panel-2),var(--bg))}
+.login-aside::after{content:'';position:absolute;inset:0;z-index:0;opacity:.5;
+  background-image:linear-gradient(var(--line-soft) 1px,transparent 1px),linear-gradient(90deg,var(--line-soft) 1px,transparent 1px);
+  background-size:46px 46px;
+  -webkit-mask-image:radial-gradient(circle at 30% 20%,#000,transparent 70%);
+  mask-image:radial-gradient(circle at 30% 20%,#000,transparent 70%)}
+.la-top,.la-mid,.la-bot{position:relative;z-index:1}
+.la-tagline{font-family:'Space Grotesk';font-size:clamp(28px,3vw,40px);font-weight:700;
+  letter-spacing:-1px;line-height:1.1;margin:36px 0 14px}
+.la-tagline b{color:var(--accent)}
+.la-sub{font-size:15px;color:var(--text-2);line-height:1.6;max-width:42ch}
+.la-feats{display:flex;flex-direction:column;gap:16px;margin-top:6px}
+.la-feat{display:flex;gap:14px;align-items:flex-start}
+.la-feat-ic{width:38px;height:38px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent)}
+.la-feat-ic svg{width:19px;height:19px}
+.la-feat b{font-size:14px;font-weight:600;display:block;margin-bottom:2px}
+.la-feat span{font-size:13px;color:var(--text-2);line-height:1.45}
+.la-foot{font-size:12px;color:var(--muted);position:relative;z-index:1}
+.login-main{display:flex;align-items:center;justify-content:center;padding:24px;position:relative}
+.login-toggles{position:absolute;top:20px;right:24px;display:flex;gap:8px}
 .login-card{
-  width:100%;max-width:400px;position:relative;
+  width:100%;max-width:380px;position:relative;
   background:linear-gradient(180deg,var(--panel-2),var(--panel));
   border:1px solid var(--line);border-radius:var(--r-lg);
   padding:40px 34px;box-shadow:var(--sh-2);overflow:hidden;
@@ -172,6 +199,13 @@ input:focus,select:focus{outline:none;border-color:var(--accent);
 .login-error{display:none;margin-top:16px;padding:11px 14px;border-radius:var(--r-sm);
   background:rgba(255,59,107,.1);border:1px solid rgba(255,59,107,.32);
   color:var(--critical);font-size:13px}
+@media (max-width:860px){
+  .login-split{grid-template-columns:1fr}
+  .login-aside{display:none}
+  .login-main{min-height:100dvh}
+}
+html[dir="rtl"] .login-toggles{right:auto;left:24px}
+html[dir="rtl"] .la-sub,html[dir="rtl"] .la-feat span,html[dir="rtl"] .la-tagline{direction:rtl}
 
 /* ============================================================
    APP SHELL
@@ -325,14 +359,16 @@ input:focus,select:focus{outline:none;border-color:var(--accent);
 }
 .stat:hover{transform:translateY(-3px);border-color:var(--st,var(--accent));box-shadow:var(--sh-2)}
 .stat::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--st,var(--accent))}
-.stat-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.stat-ic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;
-  background:color-mix(in srgb,var(--st,var(--accent)) 14%,transparent);color:var(--st,var(--accent))}
-.stat-ic svg{width:18px;height:18px}
-.stat-trend{font-size:11px;font-family:'JetBrains Mono';color:var(--muted)}
-.stat-num{font-family:'Space Grotesk';font-size:34px;font-weight:700;line-height:1;
+.stat{display:flex;flex-direction:column}
+.stat-top{display:flex;align-items:center;gap:12px;margin-bottom:auto}
+.stat-ic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  background:color-mix(in srgb,var(--st,var(--accent)) 15%,transparent);color:var(--st,var(--accent))}
+.stat-ic svg{width:19px;height:19px}
+.stat-num{font-family:'Space Grotesk';font-size:32px;font-weight:700;line-height:1;
   color:var(--st,var(--text));letter-spacing:-1px}
-.stat-lbl{font-size:11.5px;font-weight:500;color:var(--text-2);margin-top:6px;letter-spacing:.2px}
+.stat-lbl{font-size:12px;font-weight:500;color:var(--text-2);letter-spacing:.2px}
+.stat-meta{font-size:11px;color:var(--muted);margin-top:10px;display:flex;align-items:center;gap:6px}
+.stat-meta .sd{width:6px;height:6px;border-radius:50%;background:var(--st,var(--accent))}
 
 /* severity distribution bar */
 .dist-panel{margin-bottom:24px}
@@ -505,7 +541,32 @@ tbody tr.clickable:hover{background:var(--panel-2)}
 </style>
 <!-- ===================== LOGIN ===================== -->
 <div id="login-view">
-  <div class="login-card">
+ <div class="login-split">
+  <div class="login-aside">
+    <div class="la-top brand">
+      <svg class="brand-mark" viewBox="0 0 100 100" fill="none">
+        <path d="M50 8 L86 22 V50 C86 72 70 88 50 94 C30 88 14 72 14 50 V22 Z" stroke="#38e8ff" stroke-width="5" stroke-linejoin="round"/>
+        <path d="M34 50 l11 11 l22 -24" stroke="#38e8ff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="brand-name" style="font-size:20px">Vuln<b>Track</b></span>
+    </div>
+    <div class="la-mid">
+      <div class="la-tagline">Know your <b>exposure</b><br>before attackers do.</div>
+      <p class="la-sub" style="margin-bottom:30px">A single console for tracking vulnerabilities, supply-chain breaches and security components — scored, prioritized and monitored.</p>
+      <div class="la-feats">
+        <div class="la-feat"><span class="la-feat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V5z" stroke-linejoin="round"/></svg></span><div><b>Live exposure scoring</b><span>CVSS-weighted risk across every project, at a glance.</span></div></div>
+        <div class="la-feat"><span class="la-feat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Supply-chain breach watch</b><span>Match suppliers against HIBP & XON breach data.</span></div></div>
+        <div class="la-feat"><span class="la-feat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div><b>Defense component CVEs</b><span>Track firewalls, proxies & tools — auto-scanned on NVD.</span></div></div>
+      </div>
+    </div>
+    <div class="la-foot">© 2026 VulnTrack · Private security console</div>
+  </div>
+  <div class="login-main">
+   <div class="login-toggles">
+     <button class="icon-btn" aria-label="Toggle theme" onclick="toggleTheme()">◐</button>
+     <button class="icon-btn" id="login-lang" aria-label="Switch language" onclick="toggleLang()" style="width:auto;padding:0 12px">עב</button>
+   </div>
+   <div class="login-card">
     <div class="brand">
       <svg class="brand-mark" viewBox="0 0 100 100" fill="none">
         <path d="M50 8 L86 22 V50 C86 72 70 88 50 94 C30 88 14 72 14 50 V22 Z"
@@ -522,7 +583,9 @@ tbody tr.clickable:hover{background:var(--panel-2)}
     <input id="li-pass" type="password" autocomplete="current-password" placeholder="••••••••••">
     <button class="btn btn-primary btn-block" id="li-btn" onclick="doLogin()">Sign in →</button>
     <div class="login-error" id="li-err"></div>
+   </div>
   </div>
+ </div>
 </div>
 
 <!-- ===================== APP ===================== -->
@@ -1212,12 +1275,13 @@ async function loadDashboard(){
        <span class="chip" style="cursor:pointer" onclick="go('supply')"><span class="dot" style="background:${DB.suppliers.some(x=>x.breached)?'var(--critical)':'var(--info)'}"></span>Suppliers breached <b>${DB.suppliers.filter(x=>x.breached).length}/${DB.suppliers.length}</b></span>
        <span class="chip" style="cursor:pointer" onclick="go('supply')"><span class="dot" style="background:${DB.components.some(x=>x.vulns>0)?'var(--critical)':'var(--info)'}"></span>Components at risk <b>${DB.components.filter(x=>x.vulns>0).length}/${DB.components.length}</b></span>`;
     // ---- stat cards ----
-    const card=(ic,st,num,lbl)=>`<div class="stat" style="--st:${st}"><div class="stat-top"><div class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ic}</svg></div></div><div class="stat-num" data-n="${num}">0</div><div class="stat-lbl">${lbl}</div></div>`;
+    const card=(ic,st,num,lbl,meta)=>`<div class="stat" style="--st:${st}"><div class="stat-top"><div class="stat-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${ic}</svg></div><div class="stat-num" data-n="${num}">0</div></div><div class="stat-lbl">${lbl}</div><div class="stat-meta"><span class="sd"></span>${meta}</div></div>`;
+    const openP=s.status_breakdown?.Open||0;
     grid.innerHTML=
-      card('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke-linejoin="round"/>','var(--accent)',s.total_projects,'Projects')+
-      card('<path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke-linejoin="round"/>','var(--info)',s.total_dependencies,'Dependencies')+
-      card('<path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke-linecap="round" stroke-linejoin="round"/>','var(--medium)',s.total_cves,'Total CVEs')+
-      card('<path d="M12 2 4 5v6c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V5z" stroke-linejoin="round"/>','var(--critical)',s.high_critical_cves,'High / Critical');
+      card('<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" stroke-linejoin="round"/>','var(--accent)',s.total_projects,isHe()?'פרויקטים':'Projects',isHe()?'מנוטרים':'monitored')+
+      card('<path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" stroke-linejoin="round"/>','var(--info)',s.total_dependencies,isHe()?'תלויות':'Dependencies',isHe()?'נסרקו':'tracked')+
+      card('<path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" stroke-linecap="round" stroke-linejoin="round"/>','var(--medium)',s.total_cves,isHe()?'סה"כ CVEs':'Total CVEs',`${openP} ${isHe()?'פתוחות':'open'}`)+
+      card('<path d="M12 2 4 5v6c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V5z" stroke-linejoin="round"/>','var(--critical)',s.high_critical_cves,isHe()?'High / Critical':'High / Critical',isHe()?'דורש טיפול':'needs attention');
     grid.querySelectorAll('.stat-num').forEach(el=>animNum(el,+el.dataset.n));
     updateBadges(s.unread_notifications||0);
     // ---- severity distribution ----
