@@ -628,6 +628,9 @@ tbody tr.clickable:hover{background:var(--panel-2)}
     <button class="nav-item" data-nav="supply" data-t="nav_sup" onclick="go('supply')">
       <svg class="nv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Supply Chain</button>
+    <button class="nav-item" data-nav="systems" data-t="nav_sys" onclick="go('systems')">
+      <svg class="nv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4" stroke-linecap="round"/></svg>
+      Systems</button>
     <div class="nav-section">Respond</div>
     <button class="nav-item" data-nav="notifications" data-t="nav_al" onclick="go('notifications')">
       <svg class="nv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -869,6 +872,57 @@ tbody tr.clickable:hover{background:var(--panel-2)}
       </div>
     </section>
 
+    <!-- ===== SYSTEMS (general software) ===== -->
+    <section class="view" id="view-systems">
+      <div class="page-head">
+        <div><div class="eyebrow" data-t="e_sys">General software</div>
+        <h1 class="page-title" data-t="t_sys">Systems &amp; Software</h1>
+        <div class="page-sub" data-t="s_sys">Track any software — browsers, OS, servers, libraries. Enter a product and version to find known vulnerabilities and how to fix them.</div></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title" data-t="p_vulnlookup">Vulnerability lookup</span>
+          <span class="panel-meta">OSV.dev + NVD</span></div>
+        <div class="form-row">
+          <select id="sys-eco" aria-label="Ecosystem">
+            <option value="keyword">Any software (keyword · NVD)</option>
+            <option value="PyPI">PyPI (Python)</option>
+            <option value="npm">npm (Node.js)</option>
+            <option value="Go">Go</option>
+            <option value="Maven">Maven (Java)</option>
+            <option value="RubyGems">RubyGems</option>
+            <option value="crates.io">crates.io (Rust)</option>
+            <option value="NuGet">NuGet (.NET)</option>
+            <option value="Packagist">Packagist (PHP)</option>
+            <option value="Debian">Debian</option>
+            <option value="Ubuntu">Ubuntu</option>
+            <option value="Alpine">Alpine</option>
+          </select>
+        </div>
+        <div class="form-row" style="padding-top:0">
+          <input id="sys-name" placeholder="Product / package (e.g. jinja2, lodash, Chrome)" maxlength="120">
+          <input id="sys-ver" placeholder="Version (e.g. 2.4.1)" maxlength="40" style="max-width:200px">
+          <button class="btn btn-primary" id="sys-btn" onclick="lookupVuln()">⌕ <span data-t="b_lookup">Find vulnerabilities</span></button>
+        </div>
+        <div class="form-row" style="padding-top:0">
+          <label style="display:flex;align-items:center;gap:10px;font-size:13px;text-transform:none;letter-spacing:0;color:var(--text-2);margin:0;cursor:pointer;width:100%;flex-wrap:nowrap">
+            <input type="checkbox" id="sys-save" style="width:18px;height:18px;min-height:18px;flex:none" checked>
+            <span data-t="sys_save" style="flex:1">Save this system to my watch list</span>
+          </label>
+        </div>
+        <div id="sys-result" style="padding:0 20px 20px;display:none"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title" data-t="p_watch">Watched systems</span>
+          <span class="panel-meta" id="sys-count"></span></div>
+        <div class="table-wrap cardify"><table>
+          <thead><tr><th data-t="th_product">Product</th><th data-t="th_eco">Ecosystem</th><th data-t="th_ver">Version</th><th data-t="th_vulns">Vulns</th><th data-t="th_checked2">Checked</th><th></th></tr></thead>
+          <tbody id="sys-rows"></tbody>
+        </table></div>
+      </div>
+    </section>
+
     <!-- ===== SUPPLIER DETAIL ===== -->
     <section class="view" id="view-supplier-detail">
       <button class="back-link" onclick="go('supply')">
@@ -981,6 +1035,7 @@ tbody tr.clickable:hover{background:var(--panel-2)}
   <button class="nav-item" data-nav="dashboard" data-t="nav_dash" onclick="go('dashboard')">▣&nbsp; Dashboard</button>
   <button class="nav-item" data-nav="projects" data-t="nav_proj" onclick="go('projects')">⛁&nbsp; Projects</button>
   <button class="nav-item" data-nav="supply" data-t="nav_sup" onclick="go('supply')">⛓&nbsp; Supply Chain</button>
+  <button class="nav-item" data-nav="systems" data-t="nav_sys" onclick="go('systems')">▤&nbsp; Systems</button>
   <button class="nav-item" data-nav="notifications" data-t="nav_al" onclick="go('notifications')">◉&nbsp; Alerts</button>
   <button class="nav-item" data-nav="policies" data-t="nav_pol" onclick="go('policies')">⛨&nbsp; Policies</button>
   <div class="drawer-footer">
@@ -1038,6 +1093,7 @@ function freshDB(){const t=new Date().toISOString();return{
 let DB=loadDB(); if(!DB){DB=freshDB();saveDB(DB);}
 if(!DB.suppliers){DB.suppliers=[];saveDB(DB);}
 if(!DB.components){DB.components=[];saveDB(DB);}
+if(!DB.systems){DB.systems=[];saveDB(DB);}
 const nextId=()=>(++DB.seq);
 const nowISO=()=>new Date().toISOString();
 function notify(message,type){DB.notifications.unshift({id:nextId(),message,notification_type:type,is_read:0,created_at:nowISO()});}
@@ -1133,7 +1189,7 @@ const DT={Company:'חברה',Domain:'דומיין',Engagement:'התקשרות',B
  Component:'רכיב',Status:'סטטוס',Scanned:'נסרק',Message:'הודעה',Type:'סוג',Time:'זמן',
  CVE:'CVE',CVSS:'CVSS',Severity:'חומרה',Policy:'מדיניות',Threshold:'סף',Remediation:'תיקון',State:'מצב',
  Alert:'התראה',When:'מתי',Source:'מקור',Result:'תוצאה',Date:'תאריך',Data:'דאטה',
- Powers:'מזין',Updated:'עודכן','Approved by':'אושר על-ידי',Justification:'נימוק','Approved at':'אושר ב'};
+ Powers:'מזין',Updated:'עודכן',Ecosystem:'מערכת',Vulns:'פגיעויות',Product:'מוצר','Approved by':'אושר על-ידי',Justification:'נימוק','Approved at':'אושר ב'};
 const isHe=()=>(localStorage.getItem('vt_lang')||'en')==='he';
 const dl=s=>isHe()&&DT[s]?DT[s]:s;
 const sevBadge=s=>`<span class="badge sev-${esc((s||'unassigned').toLowerCase())}">${esc(s)}</span>`;
@@ -1210,6 +1266,7 @@ function go(view){
   if(view==='notifications')loadNotifications();
   if(view==='policies')loadPolicies();
   if(view==='supply'){initCatalog();loadSupply();}
+  if(view==='systems')loadSystems();
   window.scrollTo({top:0,behavior:reduceMotion()?'auto':'smooth'});
 }
 function updateBadges(n){
@@ -1894,6 +1951,127 @@ function toggleSupplierAuto(){
 }
 
 /* ============================================================
+   Systems & Software — OSV.dev + NVD vulnerability lookup
+   ============================================================ */
+function loadSystems(){
+  const sc=document.getElementById('sys-rows');
+  document.getElementById('sys-count').textContent=DB.systems.length+(isHe()?' מערכות':' systems');
+  if(!DB.systems.length)return emptyRow(sc,6,isHe()?'אין מערכות עדיין':'No systems yet',isHe()?'חפש מעלה ושמור מערכות למעקב.':'Look up above and save systems to monitor.');
+  sc.innerHTML=DB.systems.map(s=>`<tr class="clickable" onclick="recheckSystem(${s.id})">
+    <td data-l="${dl('Product')}" class="cell-strong">${esc(s.name)}</td>
+    <td data-l="${dl('Ecosystem')}" class="cell-dim">${esc(s.eco==='keyword'?'NVD keyword':s.eco)}</td>
+    <td data-l="${dl('Version')}" class="cell-mono cell-dim">${esc(s.version||'any')}</td>
+    <td data-l="${dl('Vulns')}" class="cell-mono" style="color:${s.vulns>0?'var(--critical)':s.vulns===0?'var(--low)':'var(--muted)'}">${s.vulns??'—'}</td>
+    <td data-l="${dl('Checked')}" class="cell-dim">${s.last_check?fmtDate(s.last_check):'—'}</td>
+    <td onclick="event.stopPropagation()"><button class="icon-btn danger" aria-label="Remove" onclick="delSystem(${s.id})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12" stroke-linecap="round"/></svg></button></td></tr>`).join('');
+}
+function delSystem(id){if(!confirm(isHe()?'להסיר מערכת זו?':'Remove this system?'))return;
+  DB.systems=DB.systems.filter(s=>s.id!==id);saveDB(DB);loadSystems();}
+
+function cvssFromVuln(v){
+  // OSV severity: array of {type,score} where score may be CVSS vector or number
+  try{
+    const sev=(v.severity||[]).find(x=>/CVSS/i.test(x.type));
+    if(sev){const m=String(sev.score).match(/(\d+\.\d+)/);if(m)return parseFloat(m[1]);
+      // CVSS vector -> rough band
+      if(/CVSS:3/.test(sev.score))return null;}
+  }catch(e){}
+  return null;
+}
+function fixFromVuln(v){
+  // find fixed versions in affected[].ranges[].events[].fixed
+  const fixes=new Set();
+  (v.affected||[]).forEach(a=>(a.ranges||[]).forEach(r=>(r.events||[]).forEach(e=>{if(e.fixed)fixes.add(e.fixed);})));
+  return [...fixes];
+}
+
+async function lookupVuln(){
+  const name=document.getElementById('sys-name').value.trim();
+  const ver=document.getElementById('sys-ver').value.trim();
+  const eco=document.getElementById('sys-eco').value;
+  const box=document.getElementById('sys-result');
+  if(!name)return toast(isHe()?'הזן שם מוצר.':'Enter a product name.','err');
+  const btn=document.getElementById('sys-btn');btn.disabled=true;
+  box.style.display='block';box.innerHTML='<div class="skeleton" style="width:55%;margin:8px 0"></div><div class="skeleton" style="width:80%;margin:8px 0"></div>';
+  let vulns=[],src='';
+  try{
+    if(eco==='keyword'){
+      // NVD keyword search (broad — for browsers, OS, etc.)
+      const q=encodeURIComponent((name+' '+ver).trim());
+      const r=await fetch('https://services.nvd.nist.gov/rest/json/cves/2.0?keywordSearch='+q+'&resultsPerPage=15');
+      DB.meta=DB.meta||{};DB.meta.nvd=nowISO();
+      if(!r.ok)throw new Error('NVD '+r.status);
+      const d=await r.json();src='NVD';
+      vulns=(d.vulnerabilities||[]).map(o=>{
+        const c=o.cve;const desc=(c.descriptions||[]).find(x=>x.lang==='en');
+        const m=c.metrics||{};const cv=(m.cvssMetricV31||m.cvssMetricV30||m.cvssMetricV2||[])[0];
+        return{id:c.id,summary:desc?desc.value:'',cvss:cv?cv.cvssData.baseScore:null,
+          fixes:[],url:'https://nvd.nist.gov/vuln/detail/'+c.id};});
+    }else{
+      // OSV.dev package+version query — precise
+      const body=ver?{package:{name,ecosystem:eco},version:ver}:{package:{name,ecosystem:eco}};
+      const r=await fetch('https://api.osv.dev/v1/query',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      DB.meta=DB.meta||{};DB.meta.osv=nowISO();
+      if(!r.ok)throw new Error('OSV '+r.status);
+      const d=await r.json();src='OSV.dev';
+      vulns=(d.vulns||[]).map(v=>({id:v.id,summary:v.summary||v.details||'',
+        cvss:cvssFromVuln(v),fixes:fixFromVuln(v),
+        aliases:(v.aliases||[]).filter(a=>/^CVE/.test(a)),
+        url:'https://osv.dev/vulnerability/'+v.id}));
+    }
+    saveDB(DB);
+    renderVulnResult(box,name,ver,eco,vulns,src);
+    // save to watch list
+    if(document.getElementById('sys-save').checked){
+      const existing=DB.systems.find(s=>s.name===name&&s.eco===eco&&s.version===ver);
+      const rec=existing||{id:nextId(),name,eco,version:ver,created_at:nowISO()};
+      rec.vulns=vulns.length;rec.last_check=nowISO();
+      if(!existing)DB.systems.push(rec);
+      saveDB(DB);
+      if(vulns.length)notify(`SYSTEM ALERT: ${name}${ver?' '+ver:''} has ${vulns.length} known vulnerabilit${vulns.length===1?'y':'ies'} (${src}).`,'Warning');
+    }
+    toast(vulns.length?`⚠ ${vulns.length} ${isHe()?'פגיעויות נמצאו':'vulnerabilities found'}.`:(isHe()?'לא נמצאו פגיעויות.':'No known vulnerabilities found.'),vulns.length?'err':'ok');
+    if(document.getElementById('sys-save').checked)loadSystems();
+  }catch(e){
+    box.innerHTML=`<div class="chip" style="border-color:rgba(255,159,67,.4)"><span class="dot" style="background:var(--high)"></span>${esc(netErr(e,eco==='keyword'?'NVD':'OSV.dev'))}</div>`;
+    toast(netErr(e,'lookup'),'err');
+  }finally{btn.disabled=false;}
+}
+
+function renderVulnResult(box,name,ver,eco,vulns,src){
+  if(!vulns.length){
+    box.innerHTML=`<div class="chip" style="border-color:rgba(52,229,163,.4)"><span class="dot" style="background:var(--low)"></span>${isHe()?'לא נמצאו פגיעויות ידועות עבור':'No known vulnerabilities for'} ${esc(name)} ${esc(ver)} <span class="cell-dim">(${src})</span></div>`;
+    return;
+  }
+  const head=`<div style="margin:6px 0 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span class="badge sev-high">${vulns.length} ${isHe()?'פגיעויות':'vulnerabilities'}</span>
+    <span class="cell-dim" style="font-size:12.5px">${esc(name)} ${esc(ver||'')} · ${src}</span></div>`;
+  const items=vulns.slice(0,15).map(v=>{
+    const sev=v.cvss>=9?'critical':v.cvss>=7?'high':v.cvss>=4?'medium':v.cvss?'low':'unassigned';
+    const cve=(v.aliases&&v.aliases[0])||v.id;
+    const fix=v.fixes&&v.fixes.length?`<div style="margin-top:8px;font-size:12.5px;color:var(--low)"><b>${isHe()?'תיקון':'Fix'}:</b> ${isHe()?'שדרג לגרסה':'upgrade to'} ${v.fixes.map(esc).join(' / ')}</div>`
+      :`<div style="margin-top:8px;font-size:12.5px;color:var(--text-2)"><b>${isHe()?'תיקון':'Fix'}:</b> ${isHe()?'עיין בפרטי ה-CVE להנחיות רישום':'see advisory for remediation'}</div>`;
+    return `<div style="background:var(--bg-2);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <a href="${v.url}" target="_blank" rel="noopener" class="cell-mono cell-strong" style="color:var(--accent);text-decoration:none">${esc(cve)}</a>
+        ${v.cvss?`<span class="badge sev-${sev}">CVSS ${v.cvss.toFixed(1)}</span>`:`<span class="badge sev-unassigned">${isHe()?'ללא דירוג':'unscored'}</span>`}
+      </div>
+      <p style="margin-top:8px;font-size:13px;color:var(--text-2);line-height:1.5">${esc((v.summary||'').slice(0,260)||'—')}</p>
+      ${fix}</div>`;}).join('');
+  box.innerHTML=head+items+(vulns.length>15?`<div class="cell-dim" style="font-size:12px">${isHe()?'מוצגות 15 הראשונות':'showing first 15'}</div>`:'');
+}
+
+async function recheckSystem(id){
+  const s=DB.systems.find(x=>x.id===id);if(!s)return;
+  document.getElementById('sys-eco').value=s.eco;
+  document.getElementById('sys-name').value=s.name;
+  document.getElementById('sys-ver').value=s.version||'';
+  document.getElementById('sys-save').checked=true;
+  window.scrollTo({top:0,behavior:reduceMotion()?'auto':'smooth'});
+  lookupVuln();
+}
+
+/* ============================================================
    Theme + Language
    ============================================================ */
 function applyTheme(t){document.documentElement.dataset.theme=t;localStorage.setItem('vt_theme',t);}
@@ -1931,6 +2109,14 @@ const T={
  m_hibp:['source: HIBP catalog (free)','מקור: קטלוג HIBP (חינמי)'],
  m_xonhibp:['XON + HIBP catalog','XON + קטלוג HIBP'],
  m_kanon:['k-anonymity · private','k-anonymity · פרטי'],
+ nav_sys:['Systems','מערכות'],e_sys:['General software','תוכנה כללית'],
+ t_sys:['Systems & Software','מערכות ותוכנה'],
+ s_sys:['Track any software — browsers, OS, servers, libraries. Enter a product and version to find known vulnerabilities and how to fix them.','עקוב אחר כל תוכנה — דפדפנים, מערכות הפעלה, שרתים, ספריות. הזן מוצר וגרסה כדי לזהות פגיעויות ואיך לתקן אותן.'],
+ p_vulnlookup:['Vulnerability lookup','חיפוש פגיעויות'],b_lookup:['Find vulnerabilities','חפש פגיעויות'],
+ sys_save:['Save this system to my watch list','שמור מערכת זו לרשימת המעקב'],
+ p_watch:['Watched systems','מערכות במעקב'],
+ th_product:['Product','מוצר'],th_eco:['Ecosystem','מערכת'],th_ver:['Version','גרסה'],
+ th_vulns:['Vulns','פגיעויות'],th_checked2:['Checked','נבדק'],
  p_emailchk:['Email exposure check','בדיקת חשיפת מייל'],b_emailchk:['Check email','בדוק מייל'],
  p_pwchk:['Password exposure check','בדיקת חשיפת סיסמה'],b_pwchk:['Check password','בדוק סיסמה'],
  pw_note:['Only the first 5 characters of the password hash are sent — the password never leaves this device.','נשלחים רק 5 התווים הראשונים של ה-hash — הסיסמה עצמה לעולם לא עוזבת את המכשיר.'],
