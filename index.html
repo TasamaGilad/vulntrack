@@ -118,9 +118,77 @@ body::after{
 
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
 
+/* ===== LIVE / ALIVE layer ===== */
+@keyframes pulse-glow{0%,100%{filter:drop-shadow(0 0 6px currentColor)}50%{filter:drop-shadow(0 0 16px currentColor)}}
+@keyframes live-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.8)}}
+@keyframes float-up{0%{transform:translateY(0)}100%{transform:translateY(-14px)}}
+@keyframes sheen{0%{background-position:-150% 0}60%,100%{background-position:250% 0}}
+@keyframes scan-sweep{0%{transform:translateY(-100%)}100%{transform:translateY(800%)}}
+@keyframes ring-rotate{to{transform:rotate(360deg)}}
+@keyframes pop-in{0%{transform:scale(.6);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+@keyframes bar-grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+/* live "breathing" dot next to sync time */
+.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--low);
+  margin-right:7px;animation:live-dot 1.8s ease-in-out infinite;box-shadow:0 0 8px var(--low);vertical-align:middle}
+html[dir="rtl"] .live-dot{margin-right:0;margin-left:7px}
+
+/* gauge gets a slow ambient pulse after it fills */
+.gauge-fill.alive{animation:pulse-glow 3.2s ease-in-out infinite}
+/* faint rotating accent ring behind gauge */
+.gauge::before{content:'';position:absolute;inset:-6px;border-radius:50%;
+  background:conic-gradient(from 0deg,transparent 60%,color-mix(in srgb,var(--accent) 18%,transparent) 78%,transparent 92%);
+  animation:ring-rotate 14s linear infinite;opacity:.5;z-index:-1}
+
+/* stat cards: animated top accent sheen on hover + spring entrance */
+.stat{position:relative;overflow:hidden}
+.stat::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.06) 50%,transparent 70%);
+  background-size:250% 100%;background-position:-150% 0}
+.stat:hover::after{animation:sheen 1.1s ease}
+.stat-ic{transition:transform .3s cubic-bezier(.2,1.4,.4,1)}
+.stat:hover .stat-ic{transform:scale(1.12) rotate(-4deg)}
+
+/* nav items get an animated left bar on hover */
+.nav-item .nv-ic{transition:transform .2s}
+.nav-item:hover .nv-ic{transform:translateX(2px)}
+html[dir="rtl"] .nav-item:hover .nv-ic{transform:translateX(-2px)}
+
+/* panels rise slightly + glow border on hover */
+.panel{transition:transform .25s,box-shadow .25s,border-color .25s}
+.panel:hover{border-color:color-mix(in srgb,var(--accent) 22%,var(--line))}
+
+/* primary buttons: subtle living gradient shift */
+.btn-primary{background-size:140% 140%;animation:none;transition:transform .12s,box-shadow .25s,background-position .5s}
+.btn-primary:hover:not(:disabled){background-position:100% 50%}
+
+/* severity bar segments grow in */
+.dist-seg{transform-origin:left center;animation:bar-grow .9s cubic-bezier(.2,.8,.2,1) both}
+html[dir="rtl"] .dist-seg{transform-origin:right center}
+
+/* badges pop in */
+.badge{animation:pop-in .35s cubic-bezier(.2,1.5,.4,1) both}
+
+/* scanning overlay for buttons doing network work */
+.scanning{position:relative;overflow:hidden}
+.scanning::before{content:'';position:absolute;left:0;right:0;height:40%;
+  background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--accent) 26%,transparent),transparent);
+  animation:scan-sweep 1s linear infinite;pointer-events:none}
+
+/* chips gently lift */
+.chip{transition:transform .2s,border-color .2s}
+.chip:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--accent) 30%,var(--line))}
+
+/* exposure-by-project bars animate width via transition already; add subtle shine */
+.pb-track i{position:relative;overflow:hidden}
+.pb-track i::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.25),transparent);
+  background-size:200% 100%;animation:sheen 2.5s ease-in-out infinite}
+
 @media (prefers-reduced-motion: reduce){
   *{animation-duration:.01ms!important;animation-iteration-count:1!important;
     transition-duration:.01ms!important;scroll-behavior:auto!important}
+  .gauge::before,.live-dot,.gauge-fill.alive,.pb-track i::after{animation:none!important}
 }
 
 /* ============================================================
@@ -1303,7 +1371,7 @@ async function loadDashboard(){
   skeletonRows(cvesBody,5);
   try{
     const s=await api('/stats');
-    document.getElementById('dash-stamp').textContent='Last sync · '+new Date().toLocaleTimeString();
+    document.getElementById('dash-stamp').innerHTML='<span class="live-dot"></span>Last sync · '+new Date().toLocaleTimeString();
     // gather all cves for exposure + top list
     const pl=await api('/projects');let cves=[];
     for(const p of pl.projects){const d=await api('/projects/'+p.id);cves.push(...d.cves);}
@@ -1321,7 +1389,8 @@ async function loadDashboard(){
     document.getElementById('hero-desc').textContent=ex.desc;
     setTimeout(()=>{fill.style.strokeDashoffset=reduceMotion()?off:off;
       if(reduceMotion()){document.getElementById('gauge-score').textContent=ex.score;}
-      else animNum(document.getElementById('gauge-score'),ex.score);},80);
+      else animNum(document.getElementById('gauge-score'),ex.score);
+      if(!reduceMotion())setTimeout(()=>fill.classList.add('alive'),1500);},80);
     if(reduceMotion())fill.style.strokeDashoffset=off;
     // ---- hero chips ----
     const sb=s.severity_breakdown||{};
@@ -1547,6 +1616,7 @@ async function deletePolicy(id){if(!confirm('Delete this policy?'))return;try{aw
    ============================================================ */
 const normDomain=d=>String(d||'').trim().toLowerCase().replace(/^https?:\/\//,'').replace(/^www\./,'').split('/')[0];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function scanFx(btn,on){if(!btn)return;btn.classList.toggle('scanning',!!on&&!reduceMotion());}
 function netErr(e,sourceName){
   const m=String(e&&e.message||e);
   if(/Failed to fetch|NetworkError|load failed/i.test(m))
@@ -1625,7 +1695,7 @@ async function checkBreaches(){
   const btn=document.getElementById('breach-btn');
   const targets=DB.suppliers.filter(s=>s.domain);
   if(!targets.length)return toast('Add suppliers with domains first.','err');
-  btn.disabled=true;btn.textContent='Checking…';
+  btn.disabled=true;btn.textContent='Checking…';scanFx(btn,true);
   try{
     const res=await fetch('https://haveibeenpwned.com/api/v3/breaches');
     if(!res.ok)throw new Error('HIBP catalog unavailable ('+res.status+')');
@@ -1645,7 +1715,7 @@ async function checkBreaches(){
     const st=await api('/stats');updateBadges(st.unread_notifications);
     toast(hits?`⚠ ${hits} supplier(s) found in breach data — see Alerts.`:`Checked ${targets.length} domain(s) — none in the HIBP catalog.`,hits?'err':'ok');
   }catch(e){toast(netErr(e,'HIBP'),'err');}
-  finally{btn.disabled=false;btn.textContent=(isHe()?'⛨ בדיקת פריצות':'⛨ Check breaches');}
+  finally{btn.disabled=false;scanFx(btn,false);btn.textContent=(isHe()?'⛨ בדיקת פריצות':'⛨ Check breaches');}
 }
 async function sha1hex(str){
   const buf=await crypto.subtle.digest('SHA-1',new TextEncoder().encode(str));
@@ -1655,7 +1725,7 @@ async function checkPassword(){
   const pw=document.getElementById('pw-input').value;
   const box=document.getElementById('pw-result');
   if(!pw)return toast('Enter a password to test.','err');
-  const btn=document.getElementById('pw-btn');btn.disabled=true;
+  const btn=document.getElementById('pw-btn');btn.disabled=true;scanFx(btn,true);
   box.style.display='block';
   box.innerHTML='<div class="skeleton" style="width:50%"></div>';
   try{
@@ -1685,7 +1755,7 @@ async function checkPassword(){
     const msg=netErr(e,'Pwned Passwords');
     box.innerHTML=`<span class="badge sev-high">${esc(msg)}</span>`;
     toast(msg,'err');
-  }finally{btn.disabled=false;}
+  }finally{btn.disabled=false;scanFx(btn,false);}
 }
 /* Built-in catalog of common security components & known versions.
    Versions are a curated starting list; NVD scan finds the actual CVEs. */
@@ -1772,7 +1842,7 @@ async function checkEmail(){
   const raw=document.getElementById('eml-input').value.trim().toLowerCase();
   const box=document.getElementById('eml-result');
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(raw))return toast('Enter a valid email address.','err');
-  const btn=document.getElementById('eml-btn');btn.disabled=true;
+  const btn=document.getElementById('eml-btn');btn.disabled=true;scanFx(btn,true);
   box.style.display='block';
   box.innerHTML='<div class="empty" style="padding:18px"><div class="skeleton" style="width:60%;margin:0 auto"></div></div>';
   try{
@@ -1800,7 +1870,7 @@ async function checkEmail(){
     const msg=netErr(e,'XposedOrNot');
     box.innerHTML=`<div class="chip" style="border-color:rgba(255,159,67,.4)"><span class="dot" style="background:var(--high)"></span>${esc(msg)}</div>`;
     toast(msg,'err');
-  }finally{btn.disabled=false;}
+  }finally{btn.disabled=false;scanFx(btn,false);}
 }
 async function addComponent(){
   const prod=document.getElementById('comp-prod').value;
@@ -1991,7 +2061,7 @@ async function lookupVuln(){
   const eco=document.getElementById('sys-eco').value;
   const box=document.getElementById('sys-result');
   if(!name)return toast(isHe()?'הזן שם מוצר.':'Enter a product name.','err');
-  const btn=document.getElementById('sys-btn');btn.disabled=true;
+  const btn=document.getElementById('sys-btn');btn.disabled=true;scanFx(btn,true);
   box.style.display='block';box.innerHTML='<div class="skeleton" style="width:55%;margin:8px 0"></div><div class="skeleton" style="width:80%;margin:8px 0"></div>';
   let vulns=[],src='';
   try{
@@ -2035,7 +2105,7 @@ async function lookupVuln(){
   }catch(e){
     box.innerHTML=`<div class="chip" style="border-color:rgba(255,159,67,.4)"><span class="dot" style="background:var(--high)"></span>${esc(netErr(e,eco==='keyword'?'NVD':'OSV.dev'))}</div>`;
     toast(netErr(e,'lookup'),'err');
-  }finally{btn.disabled=false;}
+  }finally{btn.disabled=false;scanFx(btn,false);}
 }
 
 function renderVulnResult(box,name,ver,eco,vulns,src){
